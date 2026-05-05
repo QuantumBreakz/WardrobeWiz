@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root, .dark {
+    --background: 230 40% 4%; /* Deep black/blue */
+    --foreground: 0 0% 98%; /* Stark white */
+
+    --card: 230 40% 4%; /* Flat with background */
+    --card-foreground: 0 0% 98%;
+
+    --popover: 230 40% 6%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%; /* White for primary actions */
+    --primary-foreground: 230 40% 4%;
+
+    --secondary: 230 30% 10%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 230 30% 10%;
+    --muted-foreground: 230 20% 60%;
+
+    --accent: 230 30% 14%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 15%; /* Thin subtle borders */
+    --input: 0 0% 15%;
+    --ring: 0 0% 98%;
+
+    --radius: 0rem; /* Sharp edges for minimalist look */
+
+    --hero-gradient: linear-gradient(135deg, hsl(230 50% 6%), hsl(230 80% 10%));
+    --card-shadow: none;
+    --card-shadow-hover: none;
+    
+    --sidebar-background: 230 40% 4%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 0 0% 98%;
+    --sidebar-primary-foreground: 230 40% 4%;
+    --sidebar-accent: 230 30% 10%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 15%;
+    --sidebar-ring: 0 0% 98%;
+
+    /* Custom LOUD Gradients */
+    --bg-liquid-dark: radial-gradient(circle at 50% 50%, hsl(230 40% 10%), hsl(230 50% 2%));
+    --bg-blocky-purple: linear-gradient(135deg, hsl(270 30% 15%), hsl(270 20% 8%));
+    --bg-silk-blue: radial-gradient(ellipse at top, hsl(220 60% 20%), transparent), radial-gradient(ellipse at bottom, hsl(230 80% 15%), transparent);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "kern" 1;
+    -webkit-font-smoothing: antialiased;
+    /* Hide default cursor globally, we will use CustomCursor */
+    cursor: none; 
+  }
+  
+  a, button, [role="button"], input, select, textarea {
+    cursor: none; /* Ensure interactive elements don't show default cursor */
+  }
+}
+
+@layer utilities {
+  .hero-gradient {
+    background: var(--hero-gradient);
+  }
+
+  .hero-aurora {
+    position: absolute;
+    top: -20%;
+    left: -10%;
+    right: -10%;
+    height: 140%;
+    background: radial-gradient(circle at 20% 20%, hsla(226 70% 50% / 0.45), transparent 55%),
+      radial-gradient(circle at 80% 0%, hsla(44 95% 65% / 0.35), transparent 45%),
+      radial-gradient(circle at 50% 80%, hsla(210 70% 50% / 0.3), transparent 50%);
+    filter: blur(80px);
+    opacity: 0.9;
+    animation: heroAurora 16s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+  
+  .card-shadow {
+    box-shadow: var(--card-shadow);
+  }
+  
+  .card-shadow-hover {
+    box-shadow: var(--card-shadow-hover);
+  }
+}
+
+@keyframes heroAurora {
+  0% {
+    transform: translateY(0px) scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translateY(-20px) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(20px) scale(0.95);
+    opacity: 0.8;
+  }
+}

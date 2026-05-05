@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv
+
+# Env
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Storage
+backend/app/storage/uploads/*
+backend/app/storage/thumbnails/*
+backend/app/storage/faiss/*
+
+

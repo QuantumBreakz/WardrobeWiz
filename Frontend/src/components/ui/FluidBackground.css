@@ -1,0 +1,71 @@
+/* ─── Fluid Background — pure CSS, zero JS animation ─────────────────────── */
+
+.fluid-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  background: #000;
+  overflow: hidden;
+}
+
+/*
+  The gooey trick:
+  - Blobs are blurred (cheap, done once per paint)
+  - contrast() on the stage snaps blur edges into sharp liquid boundaries
+  - brightness keeps colors vivid
+  - Only transform is animated → compositor thread only, zero layout/paint cost
+*/
+.fluid-stage {
+  position: absolute;
+  inset: -20%;
+  filter: contrast(12) brightness(1.1);
+  background: #000;
+  will-change: auto;
+}
+
+.fluid-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.95;
+  will-change: transform;
+}
+
+/* Blob sizes */
+.b1 { width: 65vw; height: 65vw; top: 5%;  left: 5%;  animation: drift1 20s ease-in-out infinite; }
+.b2 { width: 55vw; height: 55vw; top: 40%; right: 5%; animation: drift2 25s ease-in-out infinite; }
+.b3 { width: 50vw; height: 50vw; bottom: 5%; left: 30%; animation: drift3 30s ease-in-out infinite; }
+.b4 { width: 40vw; height: 40vw; top: 15%; left: 50%; animation: drift4 18s ease-in-out infinite; }
+
+/* Each blob drifts on its own orbit — transform only */
+@keyframes drift1 {
+  0%   { transform: translate(0,    0)    scale(1);    }
+  25%  { transform: translate(12%,  -10%) scale(1.15); }
+  50%  { transform: translate(20%,  8%)   scale(0.9);  }
+  75%  { transform: translate(5%,   15%)  scale(1.1);  }
+  100% { transform: translate(0,    0)    scale(1);    }
+}
+
+@keyframes drift2 {
+  0%   { transform: translate(0,    0)    scale(1);    }
+  25%  { transform: translate(-15%, 12%)  scale(1.2);  }
+  50%  { transform: translate(-8%,  -15%) scale(0.85); }
+  75%  { transform: translate(-20%, 5%)   scale(1.05); }
+  100% { transform: translate(0,    0)    scale(1);    }
+}
+
+@keyframes drift3 {
+  0%   { transform: translate(0,    0)    scale(1);    }
+  33%  { transform: translate(10%,  -12%) scale(1.1);  }
+  66%  { transform: translate(-10%, -8%)  scale(0.9);  }
+  100% { transform: translate(0,    0)    scale(1);    }
+}
+
+@keyframes drift4 {
+  0%   { transform: translate(0,    0)    scale(1);    }
+  20%  { transform: translate(-18%, 10%)  scale(1.3);  }
+  40%  { transform: translate(8%,   -18%) scale(0.8);  }
+  60%  { transform: translate(-10%, -10%) scale(1.2);  }
+  80%  { transform: translate(15%,  8%)   scale(0.95); }
+  100% { transform: translate(0,    0)    scale(1);    }
+}

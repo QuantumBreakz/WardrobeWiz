@@ -1,0 +1,182 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{tabularx}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{parskip}
+
+\title{WardrobeWiz - Software Test Cases}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introduction}
+This document outlines the standard test cases for the core functionalities of the WardrobeWiz application. The test cases cover user authentication, wardrobe management (uploading and editing garments), and AI-driven outfit synthesis.
+
+\vspace{1em}
+
+% ---------------------------------------------------------
+% Test Case 1: User Registration
+% ---------------------------------------------------------
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Identifier} & TC - 01 (User Registration) \\ \hline
+\textbf{Related requirements(s)} & None \\ \hline
+\textbf{Short description} & This test case verifies the functionality of registering a new user account in the WardrobeWiz system. \\ \hline
+\textbf{Pre-condition(s)} & User must have access to the web platform and be on the registration page. \\ \hline
+\textbf{Input data} & Full Name, Valid Email Address, Password, Confirm Password \\ \hline
+\textbf{Detailed steps} & 
+1. Navigate to the WardrobeWiz registration route (\texttt{/register}). \newline
+2. Fill in the "Full Name" input field. \newline
+3. Fill in the "Email Address" input field. \newline
+4. Enter a password and re-enter it in the "Confirm Password" field. \newline
+5. Click the "INITIALIZE" button. \\ \hline
+\textbf{Expected result(s)} & 
+The new user profile should be successfully generated. \newline
+The system should display a toast notification: "Welcome to WardrobeWiz." \newline
+The user should be automatically navigated to the Dashboard. \\ \hline
+\textbf{Post-condition(s)} & A new user record is persisted in the authentication database. \\ \hline
+\textbf{Actual result(s)} & 
+The new user profile is successfully generated. \newline
+The success notification appears correctly. \newline
+User is redirected to the Dashboard. \\ \hline
+\textbf{Test Case Result} & Registration functions successfully. \\ \hline
+\end{tabularx}
+\end{table}
+
+\newpage
+
+% ---------------------------------------------------------
+% Test Case 2: User Authentication (Login)
+% ---------------------------------------------------------
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Identifier} & TC - 02 (User Login) \\ \hline
+\textbf{Related requirements(s)} & None \\ \hline
+\textbf{Short description} & This test case ensures registered users can successfully authenticate and access the styling cockpit. \\ \hline
+\textbf{Pre-condition(s)} & A valid user account must exist in the database. \\ \hline
+\textbf{Input data} & Registered Username/Email, Valid Password \\ \hline
+\textbf{Detailed steps} & 
+1. Navigate to the login route (\texttt{/login}). \newline
+2. Enter the registered username or email. \newline
+3. Enter the correct password. \newline
+4. Click the "EXECUTE" button. \\ \hline
+\textbf{Expected result(s)} & 
+The system validates the credentials. \newline
+A success notification is shown: "Dashboard access granted." \newline
+The user is redirected to the Dashboard overview. \\ \hline
+\textbf{Post-condition(s)} & An active session token is generated and stored locally. \\ \hline
+\textbf{Actual result(s)} & 
+Credentials validated successfully. \newline
+Success notification appears. \newline
+User is redirected to the Dashboard. \\ \hline
+\textbf{Test Case Result} & Authentication functions successfully. \\ \hline
+\end{tabularx}
+\end{table}
+
+\vspace{2em}
+
+% ---------------------------------------------------------
+% Test Case 3: Garment Data Ingestion (Upload)
+% ---------------------------------------------------------
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Identifier} & TC - 03 (Upload Wardrobe Item) \\ \hline
+\textbf{Related requirements(s)} & None \\ \hline
+\textbf{Short description} & This test case verifies the user's ability to upload garment photos and ingest them into their digital wardrobe. \\ \hline
+\textbf{Pre-condition(s)} & User must be logged in and on the Wardrobe Upload page. \\ \hline
+\textbf{Input data} & Valid image file (.jpg, .png), Optional Metadata (Category, Season, Color) \\ \hline
+\textbf{Detailed steps} & 
+1. Navigate to the Wardrobe Upload page (\texttt{/dashboard/wardrobe/upload}). \newline
+2. Click or drag-and-drop an image into the upload zone. \newline
+3. (Optional) Edit the metadata attributes for the uploaded garment. \newline
+4. Click the "UPLOAD X ITEMS" button. \\ \hline
+\textbf{Expected result(s)} & 
+The system compresses the image and uploads it to the backend. \newline
+Upload progress bar reaches 100\%. \newline
+Success notification appears. \newline
+User is navigated back to the Wardrobe Inventory page. \\ \hline
+\textbf{Post-condition(s)} & The garment image and metadata are saved to the user's wardrobe database. \\ \hline
+\textbf{Actual result(s)} & 
+Image compressed and uploaded. \newline
+Progress bar functions correctly. \newline
+Garment is visible in the Wardrobe grid. \\ \hline
+\textbf{Test Case Result} & Garment ingestion functions successfully. \\ \hline
+\end{tabularx}
+\end{table}
+
+\newpage
+
+% ---------------------------------------------------------
+% Test Case 4: AI Outfit Synthesis
+% ---------------------------------------------------------
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Identifier} & TC - 04 (Synthesize Outfit) \\ \hline
+\textbf{Related requirements(s)} & None \\ \hline
+\textbf{Short description} & This test verifies the AI Engine's ability to recommend a complete outfit based on context inputs. \\ \hline
+\textbf{Pre-condition(s)} & User is logged in and possesses at least 2 distinct garments (e.g., top and bottom) in their digital wardrobe. \\ \hline
+\textbf{Input data} & Context Parameters: Event, Location, Weather, Mood \\ \hline
+\textbf{Detailed steps} & 
+1. Navigate to the Recommend page (\texttt{/dashboard/recommend}). \newline
+2. Input context data (e.g., Event: "Board meeting", Weather: "Cold"). \newline
+3. Click the "SYNTHESIZE" button. \newline
+4. Wait for the generation loading state to complete. \\ \hline
+\textbf{Expected result(s)} & 
+The AI processes the context against the user's wardrobe data. \newline
+A recommended Outfit Card is displayed with a primary outfit and explanatory text. \newline
+Alternative outfit suggestions are rendered below. \\ \hline
+\textbf{Post-condition(s)} & None \\ \hline
+\textbf{Actual result(s)} & 
+Loading state initiates. \newline
+Primary Outfit Card and alternatives are successfully generated and rendered. \\ \hline
+\textbf{Test Case Result} & Outfit synthesis functions successfully. \\ \hline
+\end{tabularx}
+\end{table}
+
+\vspace{2em}
+
+% ---------------------------------------------------------
+% Test Case 5: Outfit Feedback mechanism
+% ---------------------------------------------------------
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Identifier} & TC - 05 (Provide Outfit Feedback) \\ \hline
+\textbf{Related requirements(s)} & None \\ \hline
+\textbf{Short description} & This test case verifies the user's ability to provide reinforcement learning feedback on synthesized outfits. \\ \hline
+\textbf{Pre-condition(s)} & User has just generated an outfit recommendation (TC-04 completed). \\ \hline
+\textbf{Input data} & Feedback action click (Thumbs Up, Thumbs Down, or Mark as Worn) \\ \hline
+\textbf{Detailed steps} & 
+1. View the generated Outfit Card. \newline
+2. Click on the "Thumbs Up" or "Mark as Worn" feedback button. \\ \hline
+\textbf{Expected result(s)} & 
+The UI updates to reflect the feedback selection (button state changes). \newline
+A toast notification confirms the feedback was recorded. \newline
+(If "Mark as Worn") Garment usage history is updated. \\ \hline
+\textbf{Post-condition(s)} & Feedback is registered in the backend, influencing future recommendations. \\ \hline
+\textbf{Actual result(s)} & 
+UI reflects the active state. \newline
+Notification confirms the action. \\ \hline
+\textbf{Test Case Result} & Feedback mechanism functions successfully. \\ \hline
+\end{tabularx}
+\end{table}
+
+\end{document}
