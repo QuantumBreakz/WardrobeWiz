@@ -25,7 +25,7 @@ export const OutfitExplanation = ({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-white leading-relaxed whitespace-pre-wrap">
+        <p className="text-sm text-black leading-relaxed whitespace-pre-wrap">
           {formattedExplanation}
         </p>
       </CardContent>

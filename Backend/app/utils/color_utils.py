@@ -67,12 +67,14 @@ def rgb_to_name(rgb: Tuple[int, int, int]) -> str:
 
 def extract_dominant_colors(image: Image.Image, n_colors: int = 3) -> List[str]:
     """Extract the top N dominant colors from an image as named colors."""
-    img = image.convert("RGB").resize((100, 100))
+    img = image.convert("RGBA").resize((100, 100))
     pixels = list(img.getdata())
 
     # Simple binning: quantize each channel to 8 buckets of 32
     buckets: dict = {}
-    for r, g, b in pixels:
+    for r, g, b, a in pixels:
+        if a < 10:  # Skip fully or mostly transparent pixels
+            continue
         key = (r // 32 * 32, g // 32 * 32, b // 32 * 32)
         buckets[key] = buckets.get(key, 0) + 1
 

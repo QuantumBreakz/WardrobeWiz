@@ -35,8 +35,8 @@ const Analytics = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold text-white">Insights & Analytics</h1>
-        <p className="text-white/50 mt-2">
+        <h1 className="text-3xl font-semibold text-black">Insights & Analytics</h1>
+        <p className="text-black/50 mt-2">
           Track your wardrobe usage and sustainability metrics
         </p>
       </div>
@@ -44,7 +44,7 @@ const Analytics = () => {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {isLoadingWardrobe ? (
           [...Array(4)].map((_, i) => (
-            <Card key={i} className="border-white/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
+            <Card key={i} className="border-black/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
               <CardHeader className="pb-2">
                 <Skeleton className="h-4 w-24" />
               </CardHeader>
@@ -56,12 +56,12 @@ const Analytics = () => {
           ))
         ) : (
           displayStats.map((stat) => (
-            <Card key={stat.label} className="border-white/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
+            <Card key={stat.label} className="border-black/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-white/50">{stat.label}</CardTitle>
+                <CardTitle className="text-sm text-black/50">{stat.label}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-semibold text-white">{stat.value}</p>
+                <p className="text-3xl font-semibold text-black">{stat.value}</p>
                 <p className="text-xs text-primary mt-1">{stat.delta}</p>
               </CardContent>
             </Card>
@@ -70,7 +70,7 @@ const Analytics = () => {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-white/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
+        <Card className="border-black/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
           <CardHeader>
             <CardTitle>Usage breakdown</CardTitle>
             <CardDescription>Placeholder stacked bars for tops, bottoms, shoes, and accessories.</CardDescription>
@@ -80,7 +80,7 @@ const Analytics = () => {
               <div key={category}>
                 <div className="flex items-center justify-between text-sm mb-1">
                   <span>{category}</span>
-                  <span className="text-white/50">{[68, 53, 47, 32][index]}%</span>
+                  <span className="text-black/50">{[68, 53, 47, 32][index]}%</span>
                 </div>
                 <div className="h-2 rounded-full bg-muted">
                   <div
@@ -93,16 +93,16 @@ const Analytics = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
+        <Card className="border-black/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
           <CardHeader>
             <CardTitle>Week overview</CardTitle>
             <CardDescription>Daily outfit generations and feedback logs (mocked).</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-white/50">
+          <CardContent className="space-y-3 text-sm text-black/50">
             {[...Array(7)].map((_, day) => (
               <div
                 key={day}
-                className="flex items-center justify-between rounded-2xl border border-white/20 px-3 py-2"
+                className="flex items-center justify-between rounded-2xl border border-black/20 px-3 py-2"
               >
                 <span>Day {day + 1}</span>
                 <span>{Math.floor(Math.random() * 4) + 2} outfits · {Math.floor(Math.random() * 6) + 1} feedback</span>
@@ -112,36 +112,36 @@ const Analytics = () => {
         </Card>
       </div>
 
-      <Card className="border-white/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
+      <Card className="border-black/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
         <CardHeader>
           <CardTitle>Impact highlights</CardTitle>
           <CardDescription>Story-driven metrics presented with icons.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-4">
-          <div className="rounded-2xl border border-white/20 p-4 space-y-2">
+          <div className="rounded-2xl border border-black/20 p-4 space-y-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            <p className="text-sm font-semibold text-white">Confidence spikes</p>
-            <p className="text-sm text-white/50">+18% more outfit approvals week over week.</p>
+            <p className="text-sm font-semibold text-black">Confidence spikes</p>
+            <p className="text-sm text-black/50">+18% more outfit approvals week over week.</p>
           </div>
-          <div className="rounded-2xl border border-white/20 p-4 space-y-2">
+          <div className="rounded-2xl border border-black/20 p-4 space-y-2">
             <Recycle className="h-5 w-5 text-primary" />
-            <p className="text-sm font-semibold text-white">Reuse focus</p>
-            <p className="text-sm text-white/50">Eight rarely worn items reintroduced this month.</p>
+            <p className="text-sm font-semibold text-black">Reuse focus</p>
+            <p className="text-sm text-black/50">Eight rarely worn items reintroduced this month.</p>
           </div>
-          <div className="rounded-2xl border border-white/20 p-4 space-y-2">
+          <div className="rounded-2xl border border-black/20 p-4 space-y-2">
             <Clock className="h-5 w-5 text-primary" />
-            <p className="text-sm font-semibold text-white">Faster prep</p>
-            <p className="text-sm text-white/50">Decision time cut in half during weekday mornings.</p>
+            <p className="text-sm font-semibold text-black">Faster prep</p>
+            <p className="text-sm text-black/50">Decision time cut in half during weekday mornings.</p>
           </div>
-          <div className="rounded-2xl border border-white/20 p-4 space-y-2">
+          <div className="rounded-2xl border border-black/20 p-4 space-y-2">
             <Droplets className="h-5 w-5 text-primary" />
-            <p className="text-sm font-semibold text-white">Weather wins</p>
-            <p className="text-sm text-white/50">Humidity-aware suggestions triggered 11 times.</p>
+            <p className="text-sm font-semibold text-black">Weather wins</p>
+            <p className="text-sm text-black/50">Humidity-aware suggestions triggered 11 times.</p>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-white/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
+      <Card className="border-black/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
         <CardHeader>
           <CardTitle>Data export</CardTitle>
           <CardDescription>Future button for exporting CSV / PDF snapshots.</CardDescription>

@@ -44,7 +44,7 @@ export const ImageUploadZone = ({
         "relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg transition-colors cursor-pointer",
         isDragActive && !isDragReject && "border-primary bg-primary/5",
         isDragReject && "border-destructive bg-destructive/5",
-        !isDragActive && "border-white/20 hover:border-primary/50 hover:bg-muted/50",
+        !isDragActive && "border-black/20 hover:border-primary/50 hover:bg-muted/50",
         disabled && "opacity-50 cursor-not-allowed",
         className
       )}
@@ -59,13 +59,13 @@ export const ImageUploadZone = ({
         ) : (
           <>
             <div className="flex items-center justify-center w-16 h-16 rounded-full bg-muted">
-              <ImageIcon className="h-8 w-8 text-white/50" />
+              <ImageIcon className="h-8 w-8 text-black/50" />
             </div>
             <div className="space-y-2">
-              <p className="text-sm font-medium text-white">
+              <p className="text-sm font-medium text-black">
                 Drag and drop images here, or click to select
               </p>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-black/50">
                 Supports JPEG, PNG, WebP (max {maxFiles} files)
               </p>
             </div>

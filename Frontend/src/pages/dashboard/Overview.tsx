@@ -103,8 +103,8 @@ const Overview = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-white">Wardrobe Command Center</h1>
-        <p className="text-white/50 mt-2">
+        <h1 className="text-3xl font-bold text-black">Wardrobe Command Center</h1>
+        <p className="text-black/50 mt-2">
           Chat with wardrobewiz, upload pieces, set fit details, and spin up personalized outfits.
         </p>
       </div>
@@ -112,7 +112,7 @@ const Overview = () => {
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {isLoadingWardrobe ? (
           [...Array(4)].map((_, i) => (
-            <Card key={i} className="border-white/10 rounded-none bg-transparent">
+            <Card key={i} className="border-black/10 rounded-none bg-transparent">
               <CardHeader className="pb-2">
                 <Skeleton className="h-4 w-24" />
               </CardHeader>
@@ -124,13 +124,13 @@ const Overview = () => {
           ))
         ) : (
           displayStats.map((stat) => (
-            <Card key={stat.title} className="border-white/10 rounded-none bg-transparent hover:bg-white/[0.02] transition-colors group cursor-none">
-              <CardHeader className="pb-2 border-b border-white/10">
-                <CardTitle className="font-mono text-xs uppercase tracking-widest text-white/40 group-hover:text-white transition-colors">{stat.title}</CardTitle>
+            <Card key={stat.title} className="border-black/10 rounded-none bg-transparent hover:bg-black/[0.02] transition-colors group cursor-none">
+              <CardHeader className="pb-2 border-b border-black/10">
+                <CardTitle className="font-mono text-xs uppercase tracking-widest text-black/40 group-hover:text-black transition-colors">{stat.title}</CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
-                <p className="font-mono text-4xl lg:text-5xl text-white">{stat.value}</p>
-                <p className="text-sm font-light text-white/40 mt-4">{stat.description}</p>
+                <p className="font-mono text-4xl lg:text-5xl text-black">{stat.value}</p>
+                <p className="text-sm font-light text-black/40 mt-4">{stat.description}</p>
               </CardContent>
             </Card>
           ))
@@ -138,16 +138,16 @@ const Overview = () => {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border-white/10 rounded-none bg-transparent">
+        <Card className="lg:col-span-2 border-black/10 rounded-none bg-transparent">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-widest text-white/60">
+            <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-widest text-black/60">
               <MessageSquare className="h-5 w-5 text-primary" />
               Chat with wardrobewiz (RAG)
             </CardTitle>
-            <CardDescription className="font-light text-white/40">Ask for outfit riffs, care tips, or closet summaries.</CardDescription>
+            <CardDescription className="font-light text-black/40">Ask for outfit riffs, care tips, or closet summaries.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="h-48 overflow-y-auto rounded-xl border border-white/20/60 bg-muted/30 p-4 space-y-3">
+            <div className="h-48 overflow-y-auto rounded-xl border border-black/20/60 bg-muted/30 p-4 space-y-3">
               {messages.map((message, index) => (
                 <div
                   key={`${message.role}-${index}`}
@@ -155,7 +155,7 @@ const Overview = () => {
                     "rounded-2xl px-4 py-3 text-sm",
                     message.role === "user"
                       ? "bg-primary text-primary-foreground max-w-[80%] ml-auto"
-                      : "bg-white text-white max-w-[90%]",
+                      : "bg-black text-black max-w-[90%]",
                   )}
                 >
                   {message.content}
@@ -173,18 +173,18 @@ const Overview = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 rounded-none bg-transparent">
+        <Card className="border-black/10 rounded-none bg-transparent">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-widest text-white/60">
+            <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-widest text-black/60">
               <Ruler className="h-5 w-5 text-primary" />
               Personal Fit Profile
             </CardTitle>
-            <CardDescription className="font-light text-white/40">Set the measurements wardrobewiz should remember.</CardDescription>
+            <CardDescription className="font-light text-black/40">Set the measurements wardrobewiz should remember.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {Object.entries(profile).map(([key, value]) => (
               <div key={key} className="space-y-1">
-                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">{key}</label>
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-black/50">{key}</label>
                 <Input value={value} onChange={(e) => handleProfileChange(key as keyof typeof defaultProfile, e.target.value)} />
               </div>
             ))}
@@ -196,9 +196,9 @@ const Overview = () => {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-white/10 rounded-none bg-transparent">
+        <Card className="border-black/10 rounded-none bg-transparent">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-widest text-white/60">
+            <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-widest text-black/60">
               <UploadCloud className="h-5 w-5 text-primary" />
               Wardrobe Customisation
             </CardTitle>
@@ -207,7 +207,7 @@ const Overview = () => {
           <CardContent className="space-y-4">
             <div className="rounded-2xl border border-dashed border-primary/40 p-6 text-center bg-muted/30">
               <Input type="file" multiple onChange={handleUpload} className="hidden" id="wardrobe-upload" />
-              <label htmlFor="wardrobe-upload" className="cursor-pointer flex flex-col items-center gap-2 text-sm text-white/50">
+              <label htmlFor="wardrobe-upload" className="cursor-pointer flex flex-col items-center gap-2 text-sm text-black/50">
                 <UploadCloud className="h-8 w-8 text-primary" />
                 <span>
                   Click to upload or drag & drop. PNG, JPG up to 5MB.
@@ -215,13 +215,13 @@ const Overview = () => {
               </label>
             </div>
             {!uploadedItems.length ? (
-              <p className="text-sm text-white/50">No uploads yet. Your last sync was 2 days ago.</p>
+              <p className="text-sm text-black/50">No uploads yet. Your last sync was 2 days ago.</p>
             ) : (
               <div className="space-y-2 text-sm">
                 {uploadedItems.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between rounded-xl border border-white/20 px-3 py-2">
+                  <div key={item.name} className="flex items-center justify-between rounded-xl border border-black/20 px-3 py-2">
                     <span className="font-medium">{item.name}</span>
-                    <span className="text-white/50">{item.size}</span>
+                    <span className="text-black/50">{item.size}</span>
                   </div>
                 ))}
               </div>
@@ -229,9 +229,9 @@ const Overview = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 rounded-none bg-transparent">
+        <Card className="border-black/10 rounded-none bg-transparent">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-widest text-white/60">
+            <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-widest text-black/60">
               <ShoppingBag className="h-5 w-5 text-primary" />
               Wardrobe Inspiration Feed
             </CardTitle>
@@ -240,11 +240,11 @@ const Overview = () => {
           <CardContent>
             <div className="grid sm:grid-cols-2 gap-4">
               {wardrobeInspo.map((item) => (
-                <div key={item.title} className="rounded-2xl border border-white/20 overflow-hidden">
+                <div key={item.title} className="rounded-2xl border border-black/20 overflow-hidden">
                   <img src={item.image} alt={item.title} className="h-32 w-full object-cover" />
                   <div className="p-3">
                     <p className="text-sm font-semibold">{item.title}</p>
-                    <p className="text-xs text-white/50 truncate">{item.source}</p>
+                    <p className="text-xs text-black/50 truncate">{item.source}</p>
                   </div>
                 </div>
               ))}
@@ -254,9 +254,9 @@ const Overview = () => {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-white/10 rounded-none bg-transparent">
+        <Card className="border-black/10 rounded-none bg-transparent">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-widest text-white/60">
+            <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-widest text-black/60">
               <Wand2 className="h-5 w-5 text-primary" />
               Outfit Generator
             </CardTitle>
@@ -271,7 +271,7 @@ const Overview = () => {
             </form>
             <div className="space-y-2">
               {outfitIdeas.map((idea, idx) => (
-                <div key={idx} className="rounded-2xl border border-white/20 px-3 py-2 text-sm">
+                <div key={idx} className="rounded-2xl border border-black/20 px-3 py-2 text-sm">
                   {idea}
                 </div>
               ))}
@@ -279,22 +279,22 @@ const Overview = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 rounded-none bg-transparent">
+        <Card className="border-black/10 rounded-none bg-transparent">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-widest text-white/60">
+            <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase tracking-widest text-black/60">
               <Sparkles className="h-5 w-5 text-primary" />
               Personalization Notes
             </CardTitle>
             <CardDescription>Track reminders that nudge the AI toward your vibe.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <div className="rounded-2xl border border-white/20 p-3">
+            <div className="rounded-2xl border border-black/20 p-3">
               Prefers breathable fabrics for humidity. Remind me to include at least one statement accessory.
             </div>
-            <div className="rounded-2xl border border-white/20 p-3">
+            <div className="rounded-2xl border border-black/20 p-3">
               Avoid wool layers during day events. Suggest loafers or sneakers over dress shoes when the commute is longer than 1 km.
             </div>
-            <div className="rounded-2xl border border-white/20 p-3">
+            <div className="rounded-2xl border border-black/20 p-3">
               Palette favorites: navy, honey, off-white. Avoid neon except for gym looks.
             </div>
           </CardContent>

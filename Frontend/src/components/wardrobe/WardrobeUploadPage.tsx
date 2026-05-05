@@ -159,8 +159,8 @@ export const WardrobeUploadPage = ({
 
   return (
     <div className="space-y-6">
-      <div className="pb-8 border-b border-white/10">
-        <p className="font-mono text-xs uppercase tracking-[0.4em] mb-4 text-white/40">Data Ingestion</p>
+      <div className="pb-8 border-b border-black/10">
+        <p className="font-mono text-xs uppercase tracking-[0.4em] mb-4 text-black/40">Data Ingestion</p>
         <h1 className="text-5xl font-medium tracking-tight">Upload.</h1>
       </div>
 
@@ -207,7 +207,7 @@ export const WardrobeUploadPage = ({
           {uploadedImages.length > 0 && !selectedImage && (
             <Card>
               <CardContent className="pt-6">
-                <p className="text-sm text-white/50 text-center">
+                <p className="text-sm text-black/50 text-center">
                   Click "Edit Metadata" on any image to add details, or upload all items with default metadata.
                 </p>
               </CardContent>

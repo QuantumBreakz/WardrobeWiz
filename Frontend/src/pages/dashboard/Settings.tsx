@@ -15,14 +15,14 @@ const Settings = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold text-white">Settings & preferences</h1>
-        <p className="text-white/50 mt-2">
+        <h1 className="text-3xl font-semibold text-black">Settings & preferences</h1>
+        <p className="text-black/50 mt-2">
           These forms are purely frontend for now—hook them to APIs later when auth and backend are ready.
         </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-white/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
+        <Card className="border-black/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
           <CardHeader>
             <CardTitle>Account</CardTitle>
             <CardDescription>Update your basic profile details.</CardDescription>
@@ -34,7 +34,7 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
+        <Card className="border-black/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
           <CardHeader>
             <CardTitle>Measurements</CardTitle>
             <CardDescription>wardrobewiz references these numbers for fit-aware suggestions.</CardDescription>
@@ -50,7 +50,7 @@ const Settings = () => {
         </Card>
       </div>
 
-      <Card className="border-white/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
+      <Card className="border-black/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
         <CardHeader>
           <CardTitle>Notification preferences</CardTitle>
           <CardDescription>Toggle the nudges you care about.</CardDescription>
@@ -63,8 +63,8 @@ const Settings = () => {
           ].map((pref) => (
             <div key={pref.id} className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-white">{pref.label}</p>
-                <p className="text-sm text-white/50">{pref.description}</p>
+                <p className="text-sm font-medium text-black">{pref.label}</p>
+                <p className="text-sm text-black/50">{pref.description}</p>
               </div>
               <Switch id={pref.id} defaultChecked />
             </div>
@@ -72,7 +72,7 @@ const Settings = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-white/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
+      <Card className="border-black/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
         <CardHeader>
           <CardTitle>Style cues</CardTitle>
           <CardDescription>Add reminders so the AI keeps your vibe intact.</CardDescription>
@@ -85,7 +85,7 @@ const Settings = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-white/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
+      <Card className="border-black/10 rounded-none bg-black/20 backdrop-blur-md transition-colors">
         <CardHeader>
           <CardTitle>Style Profiling</CardTitle>
           <CardDescription>

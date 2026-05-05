@@ -25,7 +25,7 @@ export const ImagePreviewGrid = ({
       {images.map((image) => (
         <div
           key={image.id}
-          className="group relative aspect-square rounded-lg overflow-hidden border border-white/20 bg-muted"
+          className="group relative aspect-square rounded-lg overflow-hidden border border-black/20 bg-muted"
         >
           <img
             src={image.preview}
@@ -53,7 +53,7 @@ export const ImagePreviewGrid = ({
           )}
           {image.metadata?.name && (
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-              <p className="text-xs text-white font-medium truncate">
+              <p className="text-xs text-black font-medium truncate">
                 {image.metadata.name}
               </p>
             </div>

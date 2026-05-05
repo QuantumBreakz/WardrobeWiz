@@ -58,3 +58,5 @@ typing_extensions>=4.15.0
 urllib3>=2.6.3
 uvicorn>=0.40.0
 wcwidth>=0.6.0
+rembg>=2.0.50
+onnxruntime>=1.17.0

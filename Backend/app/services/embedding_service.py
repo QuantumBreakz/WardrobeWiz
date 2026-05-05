@@ -61,7 +61,9 @@ def get_image_embedding(image_path: str) -> Optional[List[float]]:
 
     try:
         from PIL import Image
-        img = Image.open(image_path).convert("RGB")
+        img = Image.open(image_path).convert("RGBA")
+        background = Image.new("RGBA", img.size, (255, 255, 255, 255))
+        img = Image.alpha_composite(background, img).convert("RGB")
         img_tensor = _preprocess(img).unsqueeze(0).to(_device)
 
         with torch.no_grad():

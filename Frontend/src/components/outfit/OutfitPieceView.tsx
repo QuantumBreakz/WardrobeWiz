@@ -36,10 +36,10 @@ export const OutfitPieceView = ({
         </div>
       </div>
       <CardContent className="p-3">
-        <h4 className="font-semibold text-sm text-white truncate">
+        <h4 className="font-semibold text-sm text-black truncate">
           {piece.name}
         </h4>
-        <p className="text-xs text-white/50 capitalize mt-1">
+        <p className="text-xs text-black/50 capitalize mt-1">
           {piece.position}
         </p>
       </CardContent>

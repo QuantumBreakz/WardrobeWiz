@@ -41,7 +41,9 @@ def create_thumbnail(image_path: str, thumbnail_dir: str) -> Optional[str]:
     """Generate a thumbnail for the given image. Returns the thumbnail path."""
     try:
         os.makedirs(thumbnail_dir, exist_ok=True)
-        img = Image.open(image_path).convert("RGB")
+        img = Image.open(image_path).convert("RGBA")
+        background = Image.new("RGBA", img.size, (255, 255, 255, 255))
+        img = Image.alpha_composite(background, img).convert("RGB")
         img.thumbnail(THUMBNAIL_SIZE, Image.LANCZOS)
         base = os.path.basename(image_path)
         thumb_path = os.path.join(thumbnail_dir, f"thumb_{base}")
@@ -54,6 +56,6 @@ def create_thumbnail(image_path: str, thumbnail_dir: str) -> Optional[str]:
 def open_image(image_path: str) -> Optional[Image.Image]:
     """Open an image file safely."""
     try:
-        return Image.open(image_path).convert("RGB")
+        return Image.open(image_path).convert("RGBA")
     except Exception:
         return None

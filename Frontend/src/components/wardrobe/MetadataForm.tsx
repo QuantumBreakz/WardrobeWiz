@@ -137,7 +137,7 @@ export const MetadataForm = ({
                     style={{ backgroundColor: metadata.color }}
                   >
                     <div
-                      className="w-4 h-4 rounded-full mr-2 border border-white/20"
+                      className="w-4 h-4 rounded-full mr-2 border border-black/20"
                       style={{ backgroundColor: metadata.color }}
                     />
                     {metadata.color || "Select color"}

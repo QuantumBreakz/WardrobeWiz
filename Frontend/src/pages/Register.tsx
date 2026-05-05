@@ -58,9 +58,9 @@ const Register = () => {
         className="w-full max-w-xl space-y-16 relative z-10"
       >
         <div className="space-y-4">
-          <p className="font-mono text-xs uppercase tracking-[0.4em] text-white/40">New Profile</p>
+          <p className="font-mono text-xs uppercase tracking-[0.4em] text-black/40">New Profile</p>
           <h1 className="text-5xl md:text-7xl font-medium tracking-tight">Onboard.</h1>
-          <p className="text-xl font-light text-white/40">Initialize your digital wardrobe profile.</p>
+          <p className="text-xl font-light text-black/40">Initialize your digital wardrobe profile.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
@@ -103,13 +103,13 @@ const Register = () => {
             <p className="text-sm font-mono text-red-400 uppercase tracking-widest">{error}</p>
           )}
 
-          <div className="pt-8 flex flex-col sm:flex-row items-center gap-8 justify-between border-t border-white/10">
+          <div className="pt-8 flex flex-col sm:flex-row items-center gap-8 justify-between border-t border-black/10">
             <Button type="submit" variant="default" size="lg" disabled={loading}>
               {loading ? "INITIALIZING..." : "INITIALIZE"}
             </Button>
-            <div className="text-sm font-mono tracking-widest uppercase text-white/40">
+            <div className="text-sm font-mono tracking-widest uppercase text-black/40">
               Already initialized?{" "}
-              <Link to="/login" className="text-white hover:opacity-50 transition-opacity">
+              <Link to="/login" className="text-black hover:opacity-50 transition-opacity">
                 Authenticate
               </Link>
             </div>
