@@ -14,8 +14,8 @@ venv
 Thumbs.db
 
 # Storage
-backend/app/storage/uploads/*
-backend/app/storage/thumbnails/*
-backend/app/storage/faiss/*
+#backend/app/storage/uploads/*
+#backend/app/storage/thumbnails/*
+#backend/app/storage/faiss/*
 
 
