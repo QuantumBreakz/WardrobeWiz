@@ -39,7 +39,7 @@ async def generate_guided_outfit(
         color_preference=color_preference,
         query_text=query_text,
         anchor_item_id=item_id,
-        top_k=30,
+        top_k=100,
         style_vector=style_vector,
         preference_scores=preference_scores or None,
     )
@@ -60,7 +60,7 @@ async def generate_surprise_outfit(
         db=db,
         faiss_dir=faiss_dir,
         user_id=user_id,
-        top_k=50,
+        top_k=100,
         style_vector=style_vector,
         preference_scores=preference_scores or None,
     )
@@ -122,7 +122,8 @@ def _build_combinations(candidates: List[Dict], occasion: Optional[str], max_com
             if role in ("top", "bottom") and selected.get("dress"):
                 continue
             if available:
-                selected[role] = random.choice(available)
+                # Pick the first available item to prioritize semantic relevance over random shuffling
+                selected[role] = available[0]
 
         role_map = {r: [v] for r, v in selected.items()}
         if not items_satisfy_blueprint(role_map, occasion):

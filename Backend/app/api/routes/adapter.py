@@ -77,12 +77,18 @@ ROLE_TO_POSITION = {
 def _image_url(path: Optional[str]) -> Optional[str]:
     if not path:
         return None
+    if "uploads/" in path:
+        rel_path = path.split("uploads/")[-1]
+        return f"{STATIC_BASE}/static/uploads/{rel_path}"
     return f"{STATIC_BASE}/static/uploads/{os.path.basename(path)}"
 
 
 def _thumbnail_url(path: Optional[str]) -> Optional[str]:
     if not path:
         return None
+    if "thumbnails/" in path:
+        rel_path = path.split("thumbnails/")[-1]
+        return f"{STATIC_BASE}/static/thumbnails/{rel_path}"
     return f"{STATIC_BASE}/static/thumbnails/{os.path.basename(path)}"
 
 
@@ -209,16 +215,33 @@ async def get_wardrobe_stats(db: AsyncIOMotorDatabase = Depends(get_db), current
 async def list_wardrobe(
     category: Optional[str] = None,
     season: Optional[str] = None,
+    searchQuery: Optional[str] = None,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     items = await wardrobe_service.get_user_items(db, current_user["id"], limit=500)
-    result = [_item_to_frontend(i) for i in items]
+    
+    # Also fetch catalogue items so they are browseable
+    catalogue_items = await wardrobe_service.get_user_items(db, "catalogue", limit=500)
+    all_items = items + catalogue_items
+    
+    result = [_item_to_frontend(i) for i in all_items]
 
     if category and category != "All":
         result = [i for i in result if i["category"] == category]
     if season and season != "All":
         result = [i for i in result if i["season"] == season]
+    if searchQuery:
+        q = searchQuery.lower()
+        result = [
+            i for i in result 
+            if q in (i.get("name") or "").lower() 
+            or q in (i.get("category") or "").lower()
+            or q in (i.get("type") or "").lower()
+            or q in (i.get("color") or "").lower()
+            or q in (i.get("notes") or "").lower()
+            or any(q in t.lower() for t in i.get("tags", []))
+        ]
 
     return result
 

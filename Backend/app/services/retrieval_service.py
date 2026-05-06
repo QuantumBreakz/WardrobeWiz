@@ -1,6 +1,8 @@
 """
 MongoDB-based retrieval service — replaces SQLAlchemy retrieval_service.py.
 Retrieves candidate wardrobe item dicts from MongoDB, optionally using FAISS.
+Falls back to the shared catalogue index when the user's personal wardrobe
+is empty or has too few items.
 """
 import logging
 from typing import Dict, List, Optional
@@ -11,6 +13,9 @@ from app.services.embedding_service import get_text_embedding
 from app.services.faiss_service import search
 
 logger = logging.getLogger(__name__)
+
+# Virtual user_id used for all catalogue (seeded dataset) items
+CATALOGUE_USER_ID = "catalogue"
 
 
 async def retrieve_candidates(
@@ -54,18 +59,38 @@ async def retrieve_candidates(
             "user_id": user_id,
             "embedding_id": {"$in": str_ids}
         })
-        items_from_db = await cursor.to_list(length=faiss_k)
+        from app.services.wardrobe_service import _doc_to_dict
+        items_from_db = [_doc_to_dict(doc) for doc in await cursor.to_list(length=faiss_k)]
         
-    # 3. Fallback: if FAISS failed or returned too few, get recent items
+    # 3. Fallback: if FAISS failed or returned too few, get recent user items
     if len(items_from_db) < top_k:
         from app.services.wardrobe_service import get_user_items
         recent = await get_user_items(db, user_id, limit=top_k * 2)
-        # Merge avoiding duplicates
         existing_ids = {str(i["_id"]) for i in items_from_db}
         for r in recent:
             if str(r["_id"]) not in existing_ids:
                 items_from_db.append(r)
-                
+
+    # 4. Catalogue fallback: if user has no items at all, use the seeded catalogue
+    if not items_from_db:
+        logger.info(
+            "User %s has no wardrobe items — falling back to catalogue index", user_id
+        )
+        from app.services.wardrobe_service import _doc_to_dict
+        catalogue_ids = search(faiss_dir, CATALOGUE_USER_ID, query_emb, top_k=faiss_k) if query_emb else []
+        if catalogue_ids:
+            str_cat_ids = [str(cid) for cid in catalogue_ids]
+            cursor = db["wardrobe_items"].find({
+                "user_id": CATALOGUE_USER_ID,
+                "embedding_id": {"$in": str_cat_ids},
+            })
+            items_from_db = [_doc_to_dict(doc) for doc in await cursor.to_list(length=faiss_k)]
+
+        # Final fallback: any catalogue items
+        if not items_from_db:
+            cursor = db["wardrobe_items"].find({"user_id": CATALOGUE_USER_ID}).limit(top_k)
+            items_from_db = [_doc_to_dict(doc) for doc in await cursor.to_list(length=top_k)]
+
     ordered = items_from_db
 
     if preference_scores and ordered:

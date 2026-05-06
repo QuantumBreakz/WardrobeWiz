@@ -2,18 +2,23 @@
 Admin-only routes — mounted under /api/admin.
 All routes require is_admin=True via the get_admin_user dependency.
 """
+import asyncio
+import os
 import time
 import logging
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_admin_user
 from app.services.embedding_service import get_pipeline_status, reload_model
+from app.services.faiss_service import rebuild_index
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -167,3 +172,174 @@ async def reload_ml_model(_admin: dict = Depends(get_admin_user)):
 @router.get("/ml/status")
 async def get_ml_status(_admin: dict = Depends(get_admin_user)):
     return get_pipeline_status()
+
+
+# ── Catalogue Management ───────────────────────────────────────────────────────
+
+# English folder name → English category/subcategory (mirrors seed_catalogue.py)
+_FOLDER_TO_CATEGORY = {
+    "blazers": "jackets",
+    "trousers": "bottoms",
+    "shorts": "bottoms",
+    "dresses": "dresses",
+    "hoodies": "tops",
+    "jackets": "jackets",
+    "denim_jackets": "jackets",
+    "sports_jackets": "jackets",
+    "jeans": "bottoms",
+    "t_shirts": "tops",
+    "shirts": "tops",
+    "coats": "jackets",
+    "polo_shirts": "tops",
+    "skirts": "bottoms",
+    "sweaters": "tops",
+    "formal_pants": "bottoms",
+    "formal_shirts": "tops",
+    "suits": "jackets",
+}
+_FOLDER_TO_SUBCATEGORY = {
+    "blazers": "blazers",
+    "trousers": "trousers",
+    "shorts": "shorts",
+    "dresses": "dresses",
+    "hoodies": "sweaters",
+    "jackets": "jackets",
+    "denim_jackets": "jackets",
+    "sports_jackets": "jackets",
+    "jeans": "jeans",
+    "t_shirts": "t-shirts",
+    "shirts": "shirts",
+    "coats": "coats",
+    "polo_shirts": "shirts",
+    "skirts": "skirts",
+    "sweaters": "sweaters",
+    "formal_pants": "trousers",
+    "formal_shirts": "shirts",
+    "suits": "suits",
+}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+CATALOGUE_USER_ID = "catalogue"
+CATALOGUE_LIMIT = 15
+
+
+async def _run_catalogue_seed(db: AsyncIOMotorDatabase) -> Dict[str, Any]:
+    """Core seeding logic shared by the script and this endpoint."""
+    import time as _time
+    from app.services.embedding_service import get_image_embedding
+    from app.utils.color_utils import extract_dominant_colors
+    from app.utils.image_utils import create_thumbnail, open_image
+
+    upload_dir   = Path(settings.upload_dir)
+    thumbnail_dir = settings.thumbnail_dir
+    faiss_dir    = settings.faiss_dir
+
+    # Clear existing catalogue items
+    deleted = await db["wardrobe_items"].delete_many({"user_id": CATALOGUE_USER_ID})
+    logger.info("Catalogue reseed: cleared %d existing items", deleted.deleted_count)
+
+    faiss_items: List[Tuple[int, List[float]]] = []
+    summary: Dict[str, int] = {}
+    errors = 0
+
+    for folder in sorted(upload_dir.iterdir()):
+        if not folder.is_dir() or folder.name.startswith("."):
+            continue
+        if folder.name not in _FOLDER_TO_CATEGORY:
+            continue
+
+        images = sorted(
+            p for p in folder.iterdir()
+            if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
+        )[:CATALOGUE_LIMIT]
+
+        count = 0
+        for img_path in images:
+            img_path_str = str(img_path)
+
+            thumb = create_thumbnail(img_path_str, thumbnail_dir)
+            img_pil = open_image(img_path_str)
+            colors = extract_dominant_colors(img_pil, n_colors=3) if img_pil else []
+
+            embedding = get_image_embedding(img_path_str)
+            if embedding is None:
+                errors += 1
+                continue
+
+            faiss_key = abs(hash(img_path_str)) % (2 ** 31)
+
+            doc = {
+                "user_id": CATALOGUE_USER_ID,
+                "catalogue_item": True,
+                "folder_name": folder.name,
+                "image_path": img_path_str,
+                "thumbnail_path": thumb,
+                "category": _FOLDER_TO_CATEGORY[folder.name],
+                "subcategory": _FOLDER_TO_SUBCATEGORY[folder.name],
+                "dominant_colors": colors,
+                "pattern_tags": [],
+                "occasion_tags": [],
+                "season_tags": [],
+                "embedding_id": str(faiss_key),
+                "notes": None,
+                "created_at": _time.time(),
+                "updated_at": _time.time(),
+            }
+            await db["wardrobe_items"].update_one(
+                {"user_id": CATALOGUE_USER_ID, "image_path": img_path_str},
+                {"$set": doc},
+                upsert=True,
+            )
+            faiss_items.append((faiss_key, embedding))
+            count += 1
+
+        summary[folder.name] = count
+
+    ok = rebuild_index(faiss_dir, CATALOGUE_USER_ID, faiss_items)
+    return {
+        "seeded": len(faiss_items),
+        "errors": errors,
+        "faiss_ok": ok,
+        "categories": summary,
+    }
+
+
+@router.post("/catalogue/reseed")
+async def reseed_catalogue(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    _admin: dict = Depends(get_admin_user),
+):
+    """
+    Re-seed the WardrobeWiz catalogue from the uploads directory.
+    Takes the first 15 images per category folder, embeds them via CLIP,
+    upserts wardrobe_items (user_id='catalogue'), and rebuilds the FAISS index.
+    """
+    logger.info("Admin triggered catalogue reseed")
+    result = await _run_catalogue_seed(db)
+    logger.info("Catalogue reseed complete: %s", result)
+    return result
+
+
+@router.get("/catalogue/status")
+async def catalogue_status(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    _admin: dict = Depends(get_admin_user),
+):
+    """Return current catalogue size (items + FAISS vector count)."""
+    import faiss as _faiss
+    import json
+
+    item_count = await db["wardrobe_items"].count_documents({"user_id": CATALOGUE_USER_ID})
+    faiss_path = os.path.join(settings.faiss_dir, "catalogue.index")
+    faiss_vectors = 0
+    if os.path.exists(faiss_path):
+        try:
+            idx = _faiss.read_index(faiss_path)
+            faiss_vectors = idx.ntotal
+        except Exception:
+            pass
+
+    return {
+        "catalogue_items_in_db": item_count,
+        "faiss_vectors": faiss_vectors,
+        "faiss_index_exists": os.path.exists(faiss_path),
+    }
