@@ -37,8 +37,8 @@ export const WardrobeGrid = ({
   if (items.length === 0) {
     return (
       <div className={cn("flex flex-col items-center justify-center py-12 text-center", className)}>
-        <p className="text-black/50 text-lg mb-2">No items found</p>
-        <p className="text-black/50 text-sm">
+        <p className="text-foreground/50 text-lg mb-2">No items found</p>
+        <p className="text-foreground/50 text-sm">
           Try adjusting your filters or upload new items
         </p>
       </div>

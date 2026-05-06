@@ -1,36 +1,32 @@
 """
 Frontend adapter routes – mounted under /api.
-
-Bridges the frontend's expected API shape to the existing backend services.
-All routes default to user_id=1 (single-user demo; auth is client-side only).
+All routes are async and use MongoDB Motor via get_db dependency.
 """
 import json
 import logging
 import os
+import time
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
+from bson import ObjectId
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from sqlalchemy.orm import Session
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.models.outfit import OutfitItem, OutfitRecommendation
-from app.models.wardrobe_item import WardrobeItem
+from app.core.dependencies import get_current_user
 from app.services import wardrobe_service
 from app.services.embedding_service import get_image_embedding
 from app.services.faiss_service import add_embedding, remove_embedding
 from app.services.image_service import classify_category_from_image, process_upload
 from app.services.outfit_service import generate_guided_outfit, get_outfit_history
 from app.services.feedback_service import store_feedback
-from app.schemas.feedback import FeedbackCreate
 
 router = APIRouter()
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-
-DEFAULT_USER_ID = 1
 STATIC_BASE = "http://localhost:8000"
 
 CATEGORY_MAP = {
@@ -90,79 +86,64 @@ def _thumbnail_url(path: Optional[str]) -> Optional[str]:
     return f"{STATIC_BASE}/static/thumbnails/{os.path.basename(path)}"
 
 
-def _item_to_frontend(item: WardrobeItem) -> Dict[str, Any]:
-    colors = json.loads(item.dominant_colors_json or "[]")
-    season_tags = json.loads(item.season_tags_json or "[]")
-    pattern_tags = json.loads(item.pattern_tags_json or "[]")
-    occasion_tags = json.loads(item.occasion_tags_json or "[]")
+def _item_to_frontend(item: Dict) -> Dict[str, Any]:
+    colors = item.get("dominant_colors", [])
+    season_tags = item.get("season_tags", [])
+    pattern_tags = item.get("pattern_tags", [])
+    occasion_tags = item.get("occasion_tags", [])
     tags = list({*pattern_tags, *occasion_tags})
 
     season_raw = season_tags[0].capitalize() if season_tags else "All-Season"
     season_map = {"Summer": "Summer", "Winter": "Winter", "Spring": "Spring", "Autumn": "Fall", "Fall": "Fall"}
     season = season_map.get(season_raw, "All-Season")
 
+    created = item.get("created_at", 0)
+    updated = item.get("updated_at", created)
+
     return {
-        "id": str(item.id),
-        "userId": str(item.user_id),
-        "imageUrl": _image_url(item.image_path),
-        "thumbnailUrl": _thumbnail_url(item.thumbnail_path),
-        "name": (item.subcategory or item.category or "Item").replace("-", " ").title(),
-        "category": CATEGORY_MAP.get(item.category or "", "Other"),
-        "type": TYPE_MAP.get(item.subcategory or "", "Other"),
+        "id": item.get("id", ""),
+        "userId": item.get("user_id", ""),
+        "imageUrl": _image_url(item.get("image_path")),
+        "thumbnailUrl": _thumbnail_url(item.get("thumbnail_path")),
+        "name": (item.get("subcategory") or item.get("category") or "Item").replace("-", " ").title(),
+        "category": CATEGORY_MAP.get(item.get("category") or "", "Other"),
+        "type": TYPE_MAP.get(item.get("subcategory") or "", "Other"),
         "color": colors[0] if colors else "#808080",
         "season": season,
-        "notes": item.notes or "",
+        "notes": item.get("notes") or "",
         "wearCount": 0,
         "tags": tags,
-        "createdAt": item.created_at.isoformat(),
-        "updatedAt": item.updated_at.isoformat(),
+        "createdAt": str(created),
+        "updatedAt": str(updated),
     }
 
 
-def _build_outfit_frontend(
-    outfit: OutfitRecommendation,
-    outfit_items: List[OutfitItem],
-    db: Session,
-) -> Dict[str, Any]:
+def _build_outfit_frontend(outfit_id: str, user_id: str, items_array: List[Dict], explanation: str, occasion: Optional[str], mood: Optional[str], created_at: float) -> Dict[str, Any]:
     pieces = []
-    for oi in outfit_items:
-        wi = db.query(WardrobeItem).filter(WardrobeItem.id == oi.wardrobe_item_id).first()
-        if not wi:
-            continue
-        colors = json.loads(wi.dominant_colors_json or "[]")
+    for entry in items_array:
         pieces.append({
-            "id": str(oi.id),
-            "wardrobeItemId": str(wi.id),
-            "imageUrl": _image_url(wi.image_path),
-            "name": (wi.subcategory or wi.category or "Item").replace("-", " ").title(),
-            "category": CATEGORY_MAP.get(wi.category or "", "Other"),
-            "position": ROLE_TO_POSITION.get(oi.role or "", "accessory"),
+            "id": entry.get("wardrobe_item_id", ""),
+            "wardrobeItemId": entry.get("wardrobe_item_id", ""),
+            "imageUrl": _image_url(entry.get("image_path")),
+            "name": (entry.get("subcategory") or entry.get("category") or "Item").replace("-", " ").title(),
+            "category": CATEGORY_MAP.get(entry.get("category") or "", "Other"),
+            "position": ROLE_TO_POSITION.get(entry.get("role") or "", "accessory"),
         })
-
     return {
-        "id": str(outfit.id),
-        "userId": str(outfit.user_id),
+        "id": outfit_id,
+        "userId": user_id,
         "pieces": pieces,
-        "explanation": outfit.explanation or "",
-        "context": {"occasion": outfit.occasion, "mood": outfit.mood},
-        "createdAt": outfit.created_at.isoformat(),
+        "explanation": explanation or "",
+        "context": {"occasion": occasion, "mood": mood},
+        "createdAt": str(created_at),
         "isFavorite": False,
         "feedback": None,
-        "savedAt": outfit.created_at.isoformat(),
+        "savedAt": str(created_at),
         "tags": [],
     }
 
 
-def _get_outfit_with_items(outfit_id: int, db: Session) -> Optional[Dict]:
-    outfit = db.query(OutfitRecommendation).filter(OutfitRecommendation.id == outfit_id).first()
-    if not outfit:
-        return None
-    items = db.query(OutfitItem).filter(OutfitItem.outfit_id == outfit_id).all()
-    return _build_outfit_frontend(outfit, items, db)
-
-
-def _process_file_bytes(file_bytes: bytes, filename: str, notes: str, db: Session) -> Dict[str, Any]:
-    """Process already-read file bytes into a wardrobe item."""
+async def _process_file_bytes(file_bytes: bytes, filename: str, notes: str, db: AsyncIOMotorDatabase, user_id: str) -> Dict[str, Any]:
     logger.info("Starting upload processing for %s (%d bytes)", filename, len(file_bytes))
     try:
         result = process_upload(
@@ -171,62 +152,47 @@ def _process_file_bytes(file_bytes: bytes, filename: str, notes: str, db: Sessio
             upload_dir=settings.upload_dir,
             thumbnail_dir=settings.thumbnail_dir,
         )
-        logger.info(
-            "process_upload succeeded for %s image=%s thumbnail=%s category=%s subcategory=%s",
-            filename,
-            result["image_path"],
-            result["thumbnail_path"],
-            result["category"],
-            result["subcategory"],
-        )
     except ValueError as e:
         logger.warning("process_upload rejected %s: %s", filename, e)
         raise HTTPException(status_code=422, detail=str(e))
 
-    try:
-        item = wardrobe_service.create_wardrobe_item(
-            db=db,
-            user_id=DEFAULT_USER_ID,
-            image_path=result["image_path"],
-            thumbnail_path=result["thumbnail_path"],
-            category=result["category"],
-            subcategory=result["subcategory"],
-            dominant_colors=result["dominant_colors"],
-        )
-        logger.info("DB insert succeeded for %s with item_id=%s", filename, item.id)
-    except Exception:
-        logger.exception("DB insert failed for %s", filename)
-        raise
+    item = await wardrobe_service.create_wardrobe_item(
+        db=db,
+        user_id=user_id,
+        image_path=result["image_path"],
+        thumbnail_path=result["thumbnail_path"],
+        category=result["category"],
+        subcategory=result["subcategory"],
+        dominant_colors=result["dominant_colors"],
+    )
 
     embedding = get_image_embedding(result["image_path"])
     if embedding:
-        added = add_embedding(settings.faiss_dir, DEFAULT_USER_ID, item.id, embedding)
+        # Use the MongoDB string id as identifier; FAISS uses an integer key so we hash
+        faiss_key = abs(hash(item["id"])) % (2**31)
+        added = add_embedding(settings.faiss_dir, user_id, faiss_key, embedding)
         if added:
-            item.embedding_id = str(item.id)
-            db.commit()
-            db.refresh(item)
+            await wardrobe_service.update_item(db, item["id"], {"embedding_id": str(faiss_key)})
+            item["embedding_id"] = str(faiss_key)
 
     if notes:
-        item.notes = notes
-        db.commit()
-        db.refresh(item)
+        await wardrobe_service.update_item(db, item["id"], {"notes": notes})
+        item["notes"] = notes
 
-    frontend_item = _item_to_frontend(item)
-    logger.info("Prepared frontend item for %s with item_id=%s", filename, item.id)
-    return frontend_item
+    return _item_to_frontend(item)
 
 
 # ── Wardrobe routes ────────────────────────────────────────────────────────────
 
 @router.get("/wardrobe/stats")
-def get_wardrobe_stats(db: Session = Depends(get_db)):
-    items = wardrobe_service.get_user_items(db, DEFAULT_USER_ID, limit=1000)
+async def get_wardrobe_stats(db: AsyncIOMotorDatabase = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    items = await wardrobe_service.get_user_items(db, current_user["id"], limit=1000)
     by_category: Dict[str, int] = {}
     by_season: Dict[str, int] = {}
     for item in items:
-        cat = CATEGORY_MAP.get(item.category or "", "Other")
+        cat = CATEGORY_MAP.get(item.get("category") or "", "Other")
         by_category[cat] = by_category.get(cat, 0) + 1
-        for s in json.loads(item.season_tags_json or "[]"):
+        for s in item.get("season_tags", []):
             by_season[s] = by_season.get(s, 0) + 1
 
     return {
@@ -240,12 +206,13 @@ def get_wardrobe_stats(db: Session = Depends(get_db)):
 
 
 @router.get("/wardrobe")
-def list_wardrobe(
+async def list_wardrobe(
     category: Optional[str] = None,
     season: Optional[str] = None,
-    db: Session = Depends(get_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
-    items = wardrobe_service.get_user_items(db, DEFAULT_USER_ID, limit=500)
+    items = await wardrobe_service.get_user_items(db, current_user["id"], limit=500)
     result = [_item_to_frontend(i) for i in items]
 
     if category and category != "All":
@@ -260,20 +227,20 @@ def list_wardrobe(
 async def upload_wardrobe_item_api(
     file: UploadFile = File(...),
     notes: str = Form(default=""),
-    db: Session = Depends(get_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     file_bytes = await file.read()
     filename = file.filename or "upload.jpg"
     logger.info("Single upload request received for %s (%d bytes)", filename, len(file_bytes))
-    return _process_file_bytes(file_bytes, filename, notes, db)
+    return await _process_file_bytes(file_bytes, filename, notes, db, current_user["id"])
 
 
 @router.post("/wardrobe")
-def create_wardrobe_item_api(payload: Dict[str, Any], db: Session = Depends(get_db)):
-    # Metadata-only creation (no image)
-    item = wardrobe_service.create_wardrobe_item(
+async def create_wardrobe_item_api(payload: Dict[str, Any], db: AsyncIOMotorDatabase = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    item = await wardrobe_service.create_wardrobe_item(
         db=db,
-        user_id=DEFAULT_USER_ID,
+        user_id=current_user["id"],
         image_path="",
         thumbnail_path=None,
         category=None,
@@ -281,51 +248,52 @@ def create_wardrobe_item_api(payload: Dict[str, Any], db: Session = Depends(get_
         dominant_colors=[payload.get("color", "#808080")],
     )
     if payload.get("notes"):
-        item.notes = payload["notes"]
-        db.commit()
-        db.refresh(item)
+        await wardrobe_service.update_item(db, item["id"], {"notes": payload["notes"]})
+        item["notes"] = payload["notes"]
     return _item_to_frontend(item)
 
 
 @router.get("/wardrobe/{item_id}")
-def get_wardrobe_item_api(item_id: int, db: Session = Depends(get_db)):
-    item = wardrobe_service.get_item(db, item_id)
-    if not item or item.user_id != DEFAULT_USER_ID:
+async def get_wardrobe_item_api(item_id: str, db: AsyncIOMotorDatabase = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    item = await wardrobe_service.get_item(db, item_id)
+    if not item or item.get("user_id") != current_user["id"]:
         raise HTTPException(status_code=404, detail="Item not found")
     return _item_to_frontend(item)
 
 
 @router.patch("/wardrobe/{item_id}")
-def update_wardrobe_item_api(item_id: int, payload: Dict[str, Any], db: Session = Depends(get_db)):
-    from app.schemas.wardrobe import WardrobeItemUpdate
-
-    item = wardrobe_service.get_item(db, item_id)
-    if not item or item.user_id != DEFAULT_USER_ID:
+async def update_wardrobe_item_api(item_id: str, payload: Dict[str, Any], db: AsyncIOMotorDatabase = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    item = await wardrobe_service.get_item(db, item_id)
+    if not item or item.get("user_id") != current_user["id"]:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    # Map frontend field names to backend schema
-    update = WardrobeItemUpdate(
-        notes=payload.get("notes"),
-        season_tags=[payload["season"]] if payload.get("season") else None,
-        occasion_tags=payload.get("tags"),
-    )
-    updated = wardrobe_service.update_item(db, item_id, update)
+    update = {}
+    if payload.get("notes") is not None:
+        update["notes"] = payload["notes"]
+    if payload.get("season"):
+        update["season_tags"] = [payload["season"]]
+    if payload.get("tags"):
+        update["occasion_tags"] = payload["tags"]
+
+    updated = await wardrobe_service.update_item(db, item_id, update)
     return _item_to_frontend(updated)
 
 
 @router.delete("/wardrobe/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_wardrobe_item_api(item_id: int, db: Session = Depends(get_db)):
-    item = wardrobe_service.get_item(db, item_id)
-    if not item or item.user_id != DEFAULT_USER_ID:
+async def delete_wardrobe_item_api(item_id: str, db: AsyncIOMotorDatabase = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    item = await wardrobe_service.get_item(db, item_id)
+    if not item or item.get("user_id") != current_user["id"]:
         raise HTTPException(status_code=404, detail="Item not found")
-    wardrobe_service.delete_item(db, item_id)
-    remove_embedding(settings.faiss_dir, DEFAULT_USER_ID, item_id)
+    await wardrobe_service.delete_item(db, item_id)
+    faiss_key = int(item.get("embedding_id", 0) or 0)
+    if faiss_key:
+        remove_embedding(settings.faiss_dir, current_user["id"], faiss_key)
 
 
 @router.post("/wardrobe/{item_id}/worn")
-def mark_item_worn(item_id: int, db: Session = Depends(get_db)):
-    item = wardrobe_service.get_item(db, item_id)
-    if not item or item.user_id != DEFAULT_USER_ID:
+async def mark_item_worn(item_id: str, db: AsyncIOMotorDatabase = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    item = await wardrobe_service.get_item(db, item_id)
+    if not item or item.get("user_id") != current_user["id"]:
         raise HTTPException(status_code=404, detail="Item not found")
     return _item_to_frontend(item)
 
@@ -333,16 +301,16 @@ def mark_item_worn(item_id: int, db: Session = Depends(get_db)):
 # ── Outfit routes ──────────────────────────────────────────────────────────────
 
 @router.post("/outfit/generate")
-def generate_outfit_api(payload: Dict[str, Any], db: Session = Depends(get_db)):
+async def generate_outfit_api(payload: Dict[str, Any], db: AsyncIOMotorDatabase = Depends(get_db), current_user: dict = Depends(get_current_user)):
     context = payload.get("context", {})
     occasion = context.get("occasion")
     mood = context.get("mood")
     query_text = context.get("event") or context.get("dressCode")
 
-    raw = generate_guided_outfit(
+    raw = await generate_guided_outfit(
         db=db,
         faiss_dir=settings.faiss_dir,
-        user_id=DEFAULT_USER_ID,
+        user_id=current_user["id"],
         occasion=occasion,
         mood=mood,
         color_preference=None,
@@ -358,124 +326,104 @@ def generate_outfit_api(payload: Dict[str, Any], db: Session = Depends(get_db)):
         )
 
     def _raw_to_frontend(combo: Dict) -> Dict:
-        outfit = db.query(OutfitRecommendation).filter(
-            OutfitRecommendation.id == combo["outfit_id"]
-        ).first()
-        items = db.query(OutfitItem).filter(
-            OutfitItem.outfit_id == combo["outfit_id"]
-        ).all()
-        return _build_outfit_frontend(outfit, items, db)
+        return _build_outfit_frontend(
+            outfit_id=combo["outfit_id"],
+            user_id=current_user["id"],
+            items_array=[i["item"] for i in combo["items"]],
+            explanation=combo["explanation"],
+            occasion=combo.get("occasion"),
+            mood=combo.get("mood"),
+            created_at=time.time(),
+        )
 
     outfits = [_raw_to_frontend(c) for c in raw]
     return {"outfit": outfits[0], "alternatives": outfits[1:]}
 
 
 @router.get("/outfit/saved")
-def get_saved_outfits(db: Session = Depends(get_db)):
-    outfits_raw, total = get_outfit_history(db, DEFAULT_USER_ID, skip=0, limit=50)
+async def get_saved_outfits(db: AsyncIOMotorDatabase = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    outfits_raw, total = await get_outfit_history(db, current_user["id"], skip=0, limit=50)
     result = []
     for o in outfits_raw:
-        outfit_id = o["id"]
-        frontend_outfit = _get_outfit_with_items(outfit_id, db)
-        if frontend_outfit:
-            result.append(frontend_outfit)
+        result.append(_build_outfit_frontend(
+            outfit_id=o["id"],
+            user_id=current_user["id"],
+            items_array=o.get("items", []),
+            explanation=o.get("explanation", ""),
+            occasion=o.get("occasion"),
+            mood=o.get("mood"),
+            created_at=o.get("created_at", 0),
+        ))
     return {"outfits": result, "total": total}
 
 
 @router.get("/outfit/{outfit_id}")
-def get_outfit_api(outfit_id: int, db: Session = Depends(get_db)):
-    frontend_outfit = _get_outfit_with_items(outfit_id, db)
-    if not frontend_outfit:
-        raise HTTPException(status_code=404, detail="Outfit not found")
-    return frontend_outfit
-
-
-@router.get("/outfit/{outfit_id}/alternatives")
-def get_outfit_alternatives_api(outfit_id: int, db: Session = Depends(get_db)):
-    outfit = db.query(OutfitRecommendation).filter(OutfitRecommendation.id == outfit_id).first()
+async def get_outfit_api(outfit_id: str, db: AsyncIOMotorDatabase = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    try:
+        outfit = await db["outfit_recommendations"].find_one({"_id": ObjectId(outfit_id)})
+    except Exception:
+        outfit = None
     if not outfit:
         raise HTTPException(status_code=404, detail="Outfit not found")
-        
-    raw = generate_guided_outfit(
-        db=db,
-        faiss_dir=settings.faiss_dir,
-        user_id=DEFAULT_USER_ID,
-        occasion=outfit.occasion,
-        mood=outfit.mood,
-        color_preference=None,
-        item_id=None,
-        query_text=None,
-        style_vector=None,
+    return _build_outfit_frontend(
+        outfit_id=str(outfit["_id"]),
+        user_id=current_user["id"],
+        items_array=outfit.get("items", []),
+        explanation=outfit.get("explanation", ""),
+        occasion=outfit.get("occasion"),
+        mood=outfit.get("mood"),
+        created_at=outfit.get("created_at", 0),
     )
-    
-    if not raw:
-        return []
-        
-    def _raw_to_frontend(combo: Dict) -> Dict:
-        out = db.query(OutfitRecommendation).filter(
-            OutfitRecommendation.id == combo["outfit_id"]
-        ).first()
-        items = db.query(OutfitItem).filter(
-            OutfitItem.outfit_id == combo["outfit_id"]
-        ).all()
-        return _build_outfit_frontend(out, items, db)
-
-    outfits = [_raw_to_frontend(c) for c in raw if c["outfit_id"] != outfit_id]
-    return outfits
 
 
 @router.post("/outfit/{outfit_id}/save")
-def save_outfit_api(outfit_id: int, db: Session = Depends(get_db)):
-    frontend_outfit = _get_outfit_with_items(outfit_id, db)
-    if not frontend_outfit:
-        raise HTTPException(status_code=404, detail="Outfit not found")
-    return {**frontend_outfit, "isFavorite": True}
+async def save_outfit_api(outfit_id: str, db: AsyncIOMotorDatabase = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    try:
+        await db["outfit_recommendations"].update_one({"_id": ObjectId(outfit_id)}, {"$set": {"is_saved": True}})
+    except Exception:
+        pass
+    return {"id": outfit_id, "isFavorite": True}
 
 
 @router.delete("/outfit/{outfit_id}/save", status_code=status.HTTP_204_NO_CONTENT)
-def unsave_outfit_api(outfit_id: int, db: Session = Depends(get_db)):
-    pass
+async def unsave_outfit_api(outfit_id: str, db: AsyncIOMotorDatabase = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    try:
+        await db["outfit_recommendations"].update_one({"_id": ObjectId(outfit_id)}, {"$set": {"is_saved": False}})
+    except Exception:
+        pass
 
 
 # ── Feedback routes ────────────────────────────────────────────────────────────
 
-def _store_outfit_feedback(payload: Dict[str, Any], db: Session):
+@router.post("/feedback", status_code=status.HTTP_204_NO_CONTENT)
+async def submit_feedback_api(payload: Dict[str, Any], db: AsyncIOMotorDatabase = Depends(get_db), current_user: dict = Depends(get_current_user)):
     outfit_id = payload.get("outfitId")
     feedback_type = payload.get("feedbackType", "like")
     action_map = {"like": "like", "dislike": "dislike", "swap": "skip"}
     action = action_map.get(feedback_type, "like")
-    if outfit_id:
-        fb = FeedbackCreate(
-            user_id=DEFAULT_USER_ID,
-            outfit_id=int(outfit_id),
-            action=action,
-        )
-        store_feedback(db, fb)
-
-
-@router.post("/feedback", status_code=status.HTTP_204_NO_CONTENT)
-def submit_feedback_api(payload: Dict[str, Any], db: Session = Depends(get_db)):
-    _store_outfit_feedback(payload, db)
+    await store_feedback(db, current_user["id"], outfit_id, action)
 
 
 @router.get("/feedback/history")
-def get_feedback_history(limit: int = 50, db: Session = Depends(get_db)):
+async def get_feedback_history(limit: int = 50, db: AsyncIOMotorDatabase = Depends(get_db), current_user: dict = Depends(get_current_user)):
     from app.services.feedback_service import get_user_feedback
-    events, _total, _stats = get_user_feedback(db, DEFAULT_USER_ID, skip=0, limit=limit)
-    return [
-        {"outfitId": str(e.outfit_id) if e.outfit_id else None, "feedbackType": e.action}
-        for e in events
-    ]
+    events = await get_user_feedback(db, current_user["id"], skip=0, limit=limit)
+    return [{"outfitId": e.get("outfit_id"), "feedbackType": e.get("action")} for e in events]
 
 
 @router.patch("/feedback/{outfit_id}", status_code=status.HTTP_204_NO_CONTENT)
-def update_feedback_api(outfit_id: int, payload: Dict[str, Any], db: Session = Depends(get_db)):
-    _store_outfit_feedback({**payload, "outfitId": outfit_id}, db)
+async def update_feedback_api(outfit_id: str, payload: Dict[str, Any], db: AsyncIOMotorDatabase = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    feedback_type = payload.get("feedbackType", "like")
+    action_map = {"like": "like", "dislike": "dislike", "swap": "skip"}
+    await store_feedback(db, current_user["id"], outfit_id, action_map.get(feedback_type, "like"))
 
 
 @router.post("/outfit/feedback", status_code=status.HTTP_204_NO_CONTENT)
-def outfit_feedback_api(payload: Dict[str, Any], db: Session = Depends(get_db)):
-    _store_outfit_feedback(payload, db)
+async def outfit_feedback_api(payload: Dict[str, Any], db: AsyncIOMotorDatabase = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    outfit_id = payload.get("outfitId")
+    feedback_type = payload.get("feedbackType", "like")
+    action_map = {"like": "like", "dislike": "dislike", "swap": "skip"}
+    await store_feedback(db, current_user["id"], outfit_id, action_map.get(feedback_type, "like"))
 
 
 # ── Upload routes ──────────────────────────────────────────────────────────────
@@ -484,17 +432,19 @@ def outfit_feedback_api(payload: Dict[str, Any], db: Session = Depends(get_db)):
 async def upload_image_api(
     file: UploadFile = File(...),
     metadata: str = Form(default="{}"),
-    db: Session = Depends(get_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     meta = json.loads(metadata)
     file_bytes = await file.read()
-    return _process_file_bytes(file_bytes, file.filename or "upload.jpg", meta.get("notes", ""), db)
+    return await _process_file_bytes(file_bytes, file.filename or "upload.jpg", meta.get("notes", ""), db, current_user["id"])
 
 
 @router.post("/upload/batch")
 async def upload_batch_api(
     files: List[UploadFile] = File(...),
-    db: Session = Depends(get_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     items = []
     errors = []
@@ -502,15 +452,11 @@ async def upload_batch_api(
         filename = f.filename or "upload.jpg"
         try:
             file_bytes = await f.read()
-            logger.info("Batch uploading file: %s (%d bytes)", filename, len(file_bytes))
-            item = _process_file_bytes(file_bytes, filename, "", db)
+            item = await _process_file_bytes(file_bytes, filename, "", db, current_user["id"])
             items.append(item)
-            logger.info("Appended uploaded item for %s to batch response", filename)
         except HTTPException as e:
-            logger.warning("Upload skipped %s: %s", filename, e.detail)
             errors.append(f"{filename}: {e.detail}")
         except Exception as e:
             logger.exception("Unexpected error uploading %s", filename)
             errors.append(f"{filename}: {e}")
-    logger.info("Batch upload completed with %d items and %d errors", len(items), len(errors))
     return {"items": items, "errors": errors}

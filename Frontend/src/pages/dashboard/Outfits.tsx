@@ -38,8 +38,8 @@ const Outfits = () => {
     <div className="space-y-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-black">Saved Outfits & Lookbook</h1>
-          <p className="text-black/50 mt-2">
+          <h1 className="text-3xl font-semibold text-foreground">Saved Outfits & Lookbook</h1>
+          <p className="text-foreground/50 mt-2">
             Review what wardrobewiz has generated so far. Pin favorites, share with friends, or refine a look.
           </p>
         </div>
@@ -70,8 +70,8 @@ const Outfits = () => {
       ) : savedOutfits.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-black/50 text-lg mb-2">No saved outfits yet</p>
-            <p className="text-black/50 text-sm mb-4">
+            <p className="text-foreground/50 text-lg mb-2">No saved outfits yet</p>
+            <p className="text-foreground/50 text-sm mb-4">
               Generate your first outfit recommendation to get started
             </p>
             <Button onClick={() => navigate("/dashboard/recommend")}>

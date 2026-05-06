@@ -41,7 +41,7 @@ export const Features = () => {
           {features.map((feature, index) => (
             <Card 
               key={index} 
-              className="border-white/20 border-white/10 rounded-none bg-black/20 backdrop-blur-md transition-colors hover:border-white/10 rounded-none bg-black/20 backdrop-blur-md transition-colors-hover transition-shadow duration-300"
+              className="border-white/20 border-white/10 rounded-none bg-foreground/20 backdrop-blur-md transition-colors hover:border-white/10 rounded-none bg-foreground/20 backdrop-blur-md transition-colors-hover transition-shadow duration-300"
             >
               <CardHeader>
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">

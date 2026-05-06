@@ -39,7 +39,7 @@ export const OutfitCard = ({
         )}
 
         {outfit.isFavorite && (
-          <div className="text-xs text-black/50">
+          <div className="text-xs text-foreground/50">
             Saved to favorites
           </div>
         )}

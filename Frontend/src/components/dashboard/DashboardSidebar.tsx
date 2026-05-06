@@ -9,7 +9,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Home, ShoppingBag, Sparkles, Heart, BarChart3, Settings } from "lucide-react";
+import { Home, ShoppingBag, Sparkles, Heart, BarChart3, Settings, Shield } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
@@ -21,6 +22,8 @@ const menuItems = [
 ];
 
 export function DashboardSidebar() {
+  const { user } = useAuth();
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
@@ -43,6 +46,22 @@ export function DashboardSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+
+              {/* Admin-only link */}
+              {user?.is_admin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/dashboard/admin"
+                      className="hover:bg-sidebar-accent text-yellow-600"
+                      activeClassName="bg-sidebar-accent text-yellow-700 font-medium"
+                    >
+                      <Shield className="h-5 w-5" />
+                      <span>Admin Panel</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

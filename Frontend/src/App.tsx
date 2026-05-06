@@ -19,6 +19,7 @@ import Recommend from "./pages/dashboard/Recommend";
 import Outfits from "./pages/dashboard/Outfits";
 import Analytics from "./pages/dashboard/Analytics";
 import Settings from "./pages/dashboard/Settings";
+import Admin from "./pages/dashboard/Admin";
 import Demo from "./pages/Demo";
 import Architecture from "./pages/Architecture";
 import Documentation from "./pages/Documentation";
@@ -37,10 +38,15 @@ import Terms from "./pages/Terms";
 import Security from "./pages/Security";
 import NotFound from "./pages/NotFound";
 
+import { GoogleOAuthProvider } from "@react-oauth/google";
+
 const queryClient = new QueryClient();
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "479427621264-tu6qq3tqf3qgapoqsnuum2139i7930i2.apps.googleusercontent.com";
 
 const App = () => (
   <ErrorBoundary>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
@@ -84,6 +90,7 @@ const App = () => (
               <Route path="outfits" element={<Outfits />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="admin" element={<Admin />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
@@ -92,6 +99,7 @@ const App = () => (
         </TooltipProvider>
       </QueryClientProvider>
     </AuthProvider>
+    </GoogleOAuthProvider>
   </ErrorBoundary>
 );
 

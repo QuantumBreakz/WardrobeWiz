@@ -1,44 +1,32 @@
 """
-Retrieval service: translates a user query into candidate wardrobe items.
-
-Flow:
-  1. Build query text from occasion / mood / color_preference / free text
-  2. Encode with CLIP
-  3. FAISS k-NN search
-  4. Fetch DB records, re-rank using user preference scores
-  5. Return sorted candidates
+MongoDB-based retrieval service — replaces SQLAlchemy retrieval_service.py.
+Retrieves candidate wardrobe item dicts from MongoDB, optionally using FAISS.
 """
-import json
 import logging
 from typing import Dict, List, Optional
 
-from sqlalchemy.orm import Session
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.models.wardrobe_item import WardrobeItem
 from app.services.embedding_service import get_text_embedding
 from app.services.faiss_service import search
 
 logger = logging.getLogger(__name__)
 
 
-def retrieve_candidates(
-    db: Session,
+async def retrieve_candidates(
+    db: AsyncIOMotorDatabase,
     faiss_dir: str,
-    user_id: int,
+    user_id: str,
     occasion: Optional[str] = None,
     mood: Optional[str] = None,
     color_preference: Optional[str] = None,
     query_text: Optional[str] = None,
-    anchor_item_id: Optional[int] = None,
+    anchor_item_id: Optional[str] = None,
     top_k: int = 20,
     style_vector: Optional[List[float]] = None,
     preference_scores: Optional[Dict[str, float]] = None,
-) -> List[WardrobeItem]:
-    """
-    Return up to top_k WardrobeItem records most relevant to the query.
-    Results are re-ranked by user preference scores when available.
-    """
-    # Build composite query text
+) -> List[Dict]:
+    """Return up to top_k wardrobe item dicts most relevant to the query."""
     parts = []
     if query_text:
         parts.append(query_text)
@@ -51,71 +39,61 @@ def retrieve_candidates(
 
     composite_text = " ".join(parts) if parts else "stylish outfit"
 
-    # Get text embedding for the query
     query_emb = get_text_embedding(composite_text)
-    if query_emb is None:
-        logger.warning("Could not generate query embedding; falling back to DB scan")
-        return _fallback_scan(db, user_id, top_k)
-
-    # Fetch more candidates than needed so re-ranking has room to work
-    faiss_k = min(top_k * 3, 60)
-    candidate_ids = search(faiss_dir, user_id, query_emb, top_k=faiss_k)
-
-    # Always include all DB items so items without FAISS embeddings (e.g. after
-    # reclassification) are still considered. FAISS results come first for relevance.
-    all_db_items = _fallback_scan(db, user_id, top_k * 2)
-
+    
+    # 1. Get FAISS candidates
+    faiss_k = min(top_k * 4, 100)
+    candidate_ids = search(faiss_dir, user_id, query_emb, top_k=faiss_k) if query_emb is not None else []
+    
+    # 2. Fetch specific items from DB
+    items_from_db = []
     if candidate_ids:
-        faiss_items = {
-            item.id: item
-            for item in db.query(WardrobeItem).filter(
-                WardrobeItem.id.in_(candidate_ids),
-                WardrobeItem.user_id == user_id,
-            ).all()
-        }
-        ordered_faiss = [faiss_items[cid] for cid in candidate_ids if cid in faiss_items]
-        faiss_ids = {item.id for item in ordered_faiss}
-        # Append DB items not already in FAISS results
-        ordered = ordered_faiss + [i for i in all_db_items if i.id not in faiss_ids]
-    else:
-        logger.info(f"FAISS returned 0 results for user {user_id}; using DB scan only")
-        ordered = all_db_items
+        # Convert FAISS int IDs back to string keys (embedding_id)
+        str_ids = [str(cid) for cid in candidate_ids]
+        cursor = db["wardrobe_items"].find({
+            "user_id": user_id,
+            "embedding_id": {"$in": str_ids}
+        })
+        items_from_db = await cursor.to_list(length=faiss_k)
+        
+    # 3. Fallback: if FAISS failed or returned too few, get recent items
+    if len(items_from_db) < top_k:
+        from app.services.wardrobe_service import get_user_items
+        recent = await get_user_items(db, user_id, limit=top_k * 2)
+        # Merge avoiding duplicates
+        existing_ids = {str(i["_id"]) for i in items_from_db}
+        for r in recent:
+            if str(r["_id"]) not in existing_ids:
+                items_from_db.append(r)
+                
+    ordered = items_from_db
 
-    # Re-rank by user preference scores (positive = liked, negative = disliked)
-    if preference_scores:
-        faiss_rank = {item.id: rank for rank, item in enumerate(ordered)}
+    if preference_scores and ordered:
+        faiss_rank = {item["id"]: rank for rank, item in enumerate(ordered)}
         ordered = sorted(
             ordered,
-            key=lambda item: _preference_score_for_item(item, preference_scores) - faiss_rank[item.id] * 0.1,
+            key=lambda item: _preference_score_for_item(item, preference_scores) - faiss_rank.get(item["id"], 0) * 0.1,
             reverse=True,
         )
 
-    # Honour the anchor item
     if anchor_item_id:
-        ordered = sorted(ordered, key=lambda x: 0 if x.id == anchor_item_id else 1)
+        ordered = sorted(ordered, key=lambda x: 0 if x["id"] == anchor_item_id else 1)
 
     return ordered[:top_k]
 
 
-def _preference_score_for_item(item: WardrobeItem, preference_scores: Dict[str, float]) -> float:
-    """Compute a scalar preference signal for a wardrobe item."""
+def _preference_score_for_item(item: Dict, preference_scores: Dict[str, float]) -> float:
     score = 0.0
-    if item.category:
-        score += preference_scores.get(item.category, 0.0)
-    for color in json.loads(item.dominant_colors_json or "[]"):
+    if item.get("category"):
+        score += preference_scores.get(item["category"], 0.0)
+    for color in item.get("dominant_colors", []):
         score += preference_scores.get(color, 0.0) * 0.5
-    for occ in json.loads(item.occasion_tags_json or "[]"):
+    for occ in item.get("occasion_tags", []):
         score += preference_scores.get(occ, 0.0) * 0.3
     return score
 
 
-def _fallback_scan(db: Session, user_id: int, top_k: int) -> List[WardrobeItem]:
+async def _fallback_scan(db: AsyncIOMotorDatabase, user_id: str, top_k: int) -> List[Dict]:
     """Return most recently added items when FAISS has no data yet."""
-    return (
-        db.query(WardrobeItem)
-        .filter(WardrobeItem.user_id == user_id)
-        .order_by(WardrobeItem.created_at.desc())
-        .limit(top_k)
-        .all()
-    )
-
+    from app.services.wardrobe_service import get_user_items
+    return await get_user_items(db, user_id, limit=top_k)

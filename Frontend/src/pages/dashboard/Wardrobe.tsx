@@ -35,9 +35,9 @@ const Wardrobe = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8 pb-8 border-b border-black/10">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8 pb-8 border-b border-foreground/10">
         <div>
-          <p className="font-mono text-xs uppercase tracking-[0.4em] mb-4 text-black/40">Inventory</p>
+          <p className="font-mono text-xs uppercase tracking-[0.4em] mb-4 text-foreground/40">Inventory</p>
           <h1 className="text-5xl font-medium tracking-tight">Wardrobe.</h1>
         </div>
         <Button 

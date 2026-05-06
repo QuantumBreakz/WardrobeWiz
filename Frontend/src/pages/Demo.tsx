@@ -65,7 +65,7 @@ const Demo = () => {
                 Our demonstration environment lets you interface directly with the core heuristics of the platform. Upload real unstructured data, observe the vector clustering, and prompt the styling agent.
               </p>
               <div className="flex flex-wrap gap-6">
-                <Button asChild variant="outline" size="lg" className="rounded-none border-white text-white hover:bg-white hover:text-black">
+                <Button asChild variant="outline" size="lg" className="rounded-none border-white text-white hover:bg-white hover:text-foreground">
                   <Link to="/login" className="flex items-center gap-2">
                     INITIATE INSTANCE
                     <Play className="h-4 w-4" />
@@ -77,7 +77,7 @@ const Demo = () => {
               </div>
             </div>
 
-            <div className="w-full lg:w-[450px] border border-white/20 bg-black/20 backdrop-blur-md p-8 relative overflow-hidden group">
+            <div className="w-full lg:w-[450px] border border-white/20 bg-foreground/20 backdrop-blur-md p-8 relative overflow-hidden group">
               <p className="font-mono text-xs uppercase tracking-[0.4em] text-white/50 mb-8">Viewport / Render</p>
               <div className="h-48 w-full border border-white/10 relative overflow-hidden flex items-center justify-center">
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.1),transparent)]" />

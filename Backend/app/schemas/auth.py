@@ -14,6 +14,7 @@ class LoginRequest(BaseModel):
 
 class AuthResponse(BaseModel):
     token: str
-    user_id: int
+    user_id: str
     name: str
     email: str
+    is_admin: bool = False

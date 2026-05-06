@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 
 export const DashboardNavbar = () => {
   return (
-    <header className="h-16 border-b border-black/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
+    <header className="h-16 border-b border-foreground/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
       <div className="flex items-center h-full px-4 gap-4">
         <SidebarTrigger className="shrink-0" />
         
@@ -17,7 +17,7 @@ export const DashboardNavbar = () => {
         
         <div className="flex-1 max-w-md mx-4 hidden md:block">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/50" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/50" />
             <Input
               placeholder="Search your wardrobe..."
               className="pl-9"

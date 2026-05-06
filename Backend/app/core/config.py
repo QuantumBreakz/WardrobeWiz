@@ -2,9 +2,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "WardrobeWhiz API"
+    app_name: str = "WardrobeWiz API"
     debug: bool = True
-    database_url: str = "sqlite:///./wardrobewhiz.db"
+    
+    # Secrets loaded from .env
+    mongo_uri: str
+    mongo_db_name: str = "WardrobeWiz"
+    google_client_id: str
+    secret_key: str = "wardrobewiz-secret-key-2024"
+    
+    # Paths
     upload_dir: str = "app/storage/uploads"
     thumbnail_dir: str = "app/storage/thumbnails"
     faiss_dir: str = "app/storage/faiss"

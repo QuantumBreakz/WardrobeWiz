@@ -1,63 +1,62 @@
+"""
+Profile routes — MongoDB async rewrite.
+"""
+import time
+from typing import Optional
+
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from motor.motor_asyncio import AsyncIOMotorDatabase
+from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.schemas.profile import ProfileCreate, ProfileResponse, ProfileUpdate, UserCreate, UserResponse
-from app.services import profile_service
+from app.core.dependencies import get_current_user
 
 router = APIRouter()
 
 
-# ── Users ─────────────────────────────────────────────────────────────────────
-
-@router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def create_user(payload: UserCreate, db: Session = Depends(get_db)):
-    if payload.email:
-        existing = profile_service.get_user_by_email(db, payload.email)
-        if existing:
-            raise HTTPException(status_code=400, detail="Email already registered")
-    user = profile_service.create_user(db, payload)
-    return user
+class ProfileUpdate(BaseModel):
+    style_text: Optional[str] = None
+    preferred_styles: Optional[list] = None
+    preferred_colors: Optional[list] = None
+    disliked_colors: Optional[list] = None
+    preferred_occasions: Optional[list] = None
+    eastern_western_preference: Optional[str] = None
 
 
-@router.get("/users/{user_id}", response_model=UserResponse)
-def get_user(user_id: int, db: Session = Depends(get_db)):
-    user = profile_service.get_user(db, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
+@router.get("/me")
+async def get_my_profile(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    profile = await db["user_profiles"].find_one({"user_id": current_user["id"]})
+    if not profile:
+        return {"user_id": current_user["id"], "style_text": None}
+    profile["id"] = str(profile.pop("_id"))
+    return profile
 
 
-# ── Profiles ──────────────────────────────────────────────────────────────────
+@router.put("/me")
+async def update_my_profile(
+    payload: ProfileUpdate,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    update_fields = {k: v for k, v in payload.model_dump().items() if v is not None}
+    update_fields["updated_at"] = time.time()
 
-@router.post("/", response_model=ProfileResponse, status_code=status.HTTP_201_CREATED)
-def create_profile(payload: ProfileCreate, db: Session = Depends(get_db)):
-    user = profile_service.get_user(db, payload.user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    existing = profile_service.get_profile(db, payload.user_id)
+    existing = await db["user_profiles"].find_one({"user_id": current_user["id"]})
     if existing:
-        raise HTTPException(status_code=400, detail="Profile already exists for this user. Use PUT to update.")
+        await db["user_profiles"].update_one(
+            {"user_id": current_user["id"]},
+            {"$set": update_fields}
+        )
+    else:
+        update_fields["user_id"] = current_user["id"]
+        update_fields["created_at"] = time.time()
+        await db["user_profiles"].insert_one(update_fields)
 
-    profile = profile_service.create_profile(db, payload)
-    data = profile_service.serialize_profile(profile)
-    return ProfileResponse(**data)
-
-
-@router.get("/{user_id}", response_model=ProfileResponse)
-def get_profile(user_id: int, db: Session = Depends(get_db)):
-    profile = profile_service.get_profile(db, user_id)
-    if not profile:
-        raise HTTPException(status_code=404, detail="Profile not found")
-    data = profile_service.serialize_profile(profile)
-    return ProfileResponse(**data)
-
-
-@router.put("/{user_id}", response_model=ProfileResponse)
-def update_profile(user_id: int, payload: ProfileUpdate, db: Session = Depends(get_db)):
-    profile = profile_service.update_profile(db, user_id, payload)
-    if not profile:
-        raise HTTPException(status_code=404, detail="Profile not found")
-    data = profile_service.serialize_profile(profile)
-    return ProfileResponse(**data)
+    profile = await db["user_profiles"].find_one({"user_id": current_user["id"]})
+    if profile:
+        profile["id"] = str(profile.pop("_id"))
+    return profile

@@ -50,7 +50,7 @@ const Documentation = () => {
           </p>
           
           <div className="flex flex-wrap gap-4 pt-8">
-            <Button variant="outline" size="lg" className="rounded-none border-white text-white hover:bg-white hover:text-black">
+            <Button variant="outline" size="lg" className="rounded-none border-white text-white hover:bg-white hover:text-foreground">
               DOWNLOAD ARCHITECTURE.PDF
             </Button>
             <Button variant="ghost" size="lg" className="rounded-none text-white/50 hover:text-white font-mono uppercase tracking-widest text-sm">
@@ -77,7 +77,7 @@ const Documentation = () => {
         <div className="pt-8 grid gap-12 lg:grid-cols-2">
           <div className="space-y-8">
             <h2 className="text-3xl font-medium text-white">System Status</h2>
-            <div className="border border-white/20 p-8 bg-black/20 backdrop-blur-md space-y-4">
+            <div className="border border-white/20 p-8 bg-foreground/20 backdrop-blur-md space-y-4">
               {checklist.map((item) => (
                 <div key={item.label} className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/10 pb-4 last:border-0 last:pb-0 gap-2">
                   <p className="font-mono text-sm tracking-wide text-white/80">{item.label}</p>
@@ -95,7 +95,7 @@ const Documentation = () => {
 
           <div className="space-y-8">
             <h2 className="text-3xl font-medium text-white">Technical Chapters</h2>
-            <div className="border border-white/20 bg-black/20 backdrop-blur-md divide-y divide-white/10">
+            <div className="border border-white/20 bg-foreground/20 backdrop-blur-md divide-y divide-white/10">
               {[
                 { ch: "01", title: "Problem Space", desc: "Data on wardrobe misutilization." },
                 { ch: "02", title: "Product Vision", desc: "Defining the wardrobewiz algorithmic moat." },

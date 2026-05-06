@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
+import { GoogleLogin } from "@react-oauth/google";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -15,7 +16,21 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { register } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    if (credentialResponse.credential) {
+      setLoading(true);
+      const result = await loginWithGoogle(credentialResponse.credential);
+      setLoading(false);
+      if (result.success) {
+        toast({ title: "Access granted via Google." });
+        navigate("/dashboard");
+      } else {
+        setError(result.message ?? "Google registration failed.");
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,9 +73,9 @@ const Register = () => {
         className="w-full max-w-xl space-y-16 relative z-10"
       >
         <div className="space-y-4">
-          <p className="font-mono text-xs uppercase tracking-[0.4em] text-black/40">New Profile</p>
+          <p className="font-mono text-xs uppercase tracking-[0.4em] text-foreground/40">New Profile</p>
           <h1 className="text-5xl md:text-7xl font-medium tracking-tight">Onboard.</h1>
-          <p className="text-xl font-light text-black/40">Initialize your digital wardrobe profile.</p>
+          <p className="text-xl font-light text-foreground/40">Initialize your digital wardrobe profile.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
@@ -103,15 +118,26 @@ const Register = () => {
             <p className="text-sm font-mono text-red-400 uppercase tracking-widest">{error}</p>
           )}
 
-          <div className="pt-8 flex flex-col sm:flex-row items-center gap-8 justify-between border-t border-black/10">
-            <Button type="submit" variant="default" size="lg" disabled={loading}>
-              {loading ? "INITIALIZING..." : "INITIALIZE"}
-            </Button>
-            <div className="text-sm font-mono tracking-widest uppercase text-black/40">
-              Already initialized?{" "}
-              <Link to="/login" className="text-black hover:opacity-50 transition-opacity">
-                Authenticate
-              </Link>
+          <div className="pt-8 flex flex-col gap-6 border-t border-foreground/10">
+            <div className="flex justify-center w-full">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError("Google registration failed")}
+                theme="outline"
+                size="large"
+              />
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-center gap-8 justify-between">
+              <Button type="submit" variant="default" size="lg" disabled={loading} className="text-black">
+                {loading ? "INITIALIZING..." : "INITIALIZE"}
+              </Button>
+              <div className="text-sm font-mono tracking-widest uppercase text-foreground/40">
+                Already initialized?{" "}
+                <Link to="/login" className="text-foreground hover:opacity-50 transition-opacity">
+                  Authenticate
+                </Link>
+              </div>
             </div>
           </div>
         </form>

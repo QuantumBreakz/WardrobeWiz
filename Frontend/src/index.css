@@ -7,41 +7,67 @@ All colors MUST be HSL.
 */
 
 @layer base {
-  :root, .dark {
-    --background: 230 40% 4%; /* Deep black/blue */
-    --foreground: 0 0% 98%; /* Stark white */
-
-    --card: 230 40% 4%; /* Flat with background */
-    --card-foreground: 0 0% 98%;
-
-    --popover: 230 40% 6%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 0 0% 98%; /* White for primary actions */
-    --primary-foreground: 230 40% 4%;
-
-    --secondary: 230 30% 10%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 230 30% 10%;
-    --muted-foreground: 230 20% 60%;
-
-    --accent: 230 30% 14%;
-    --accent-foreground: 0 0% 98%;
-
+  :root {
+    --background: 230 40% 96%;
+    --foreground: 0 0% 0%; /* Black text */
+    --card: 230 40% 96%;
+    --card-foreground: 0 0% 0%;
+    --popover: 230 40% 96%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 230 40% 4%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 230 30% 90%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 230 30% 90%;
+    --muted-foreground: 230 20% 40%;
+    --accent: 230 30% 86%;
+    --accent-foreground: 0 0% 0%;
     --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 98%;
-
-    --border: 0 0% 15%; /* Thin subtle borders */
-    --input: 0 0% 15%;
-    --ring: 0 0% 98%;
-
-    --radius: 0rem; /* Sharp edges for minimalist look */
-
+    --border: 0 0% 0%;
+    --input: 0 0% 0%;
+    --ring: 0 0% 0%;
+    --radius: 0rem;
     --hero-gradient: linear-gradient(135deg, hsl(230 50% 6%), hsl(230 80% 10%));
     --card-shadow: none;
     --card-shadow-hover: none;
-    
+    --sidebar-background: 230 40% 96%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 230 40% 4%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 230 30% 90%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 0 0% 0%;
+    --sidebar-ring: 0 0% 0%;
+    --bg-liquid-dark: radial-gradient(circle at 50% 50%, hsl(230 40% 10%), hsl(230 50% 2%));
+    --bg-blocky-purple: linear-gradient(135deg, hsl(270 30% 15%), hsl(270 20% 8%));
+    --bg-silk-blue: radial-gradient(ellipse at top, hsl(220 60% 20%), transparent), radial-gradient(ellipse at bottom, hsl(230 80% 15%), transparent);
+  }
+
+  .dark {
+    --background: 230 40% 4%;
+    --foreground: 0 0% 98%; /* Stark white */
+    --card: 230 40% 4%;
+    --card-foreground: 0 0% 98%;
+    --popover: 230 40% 6%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 230 40% 4%;
+    --secondary: 230 30% 10%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 230 30% 10%;
+    --muted-foreground: 230 20% 60%;
+    --accent: 230 30% 14%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 100%;
+    --input: 0 0% 100%;
+    --ring: 0 0% 98%;
+    --radius: 0rem;
+    --hero-gradient: linear-gradient(135deg, hsl(230 50% 6%), hsl(230 80% 10%));
+    --card-shadow: none;
+    --card-shadow-hover: none;
     --sidebar-background: 230 40% 4%;
     --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 0 0% 98%;
@@ -50,8 +76,6 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 0 0% 15%;
     --sidebar-ring: 0 0% 98%;
-
-    /* Custom LOUD Gradients */
     --bg-liquid-dark: radial-gradient(circle at 50% 50%, hsl(230 40% 10%), hsl(230 50% 2%));
     --bg-blocky-purple: linear-gradient(135deg, hsl(270 30% 15%), hsl(270 20% 8%));
     --bg-silk-blue: radial-gradient(ellipse at top, hsl(220 60% 20%), transparent), radial-gradient(ellipse at bottom, hsl(230 80% 15%), transparent);

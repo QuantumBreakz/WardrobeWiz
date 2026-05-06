@@ -25,7 +25,7 @@ export const ContextInputForm = ({
     <div className={className}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-16">
         <div className="space-y-4">
-          <Label htmlFor="event" className="font-mono text-xs uppercase tracking-widest text-black/40">Event / Occasion</Label>
+          <Label htmlFor="event" className="font-mono text-xs uppercase tracking-widest text-foreground/40">Event / Occasion</Label>
           <Input
             id="event"
             placeholder="e.g., Board meeting"
@@ -35,7 +35,7 @@ export const ContextInputForm = ({
         </div>
 
         <div className="space-y-4">
-          <Label htmlFor="location" className="font-mono text-xs uppercase tracking-widest text-black/40">Location</Label>
+          <Label htmlFor="location" className="font-mono text-xs uppercase tracking-widest text-foreground/40">Location</Label>
           <Input
             id="location"
             placeholder="e.g., Karachi"
@@ -45,7 +45,7 @@ export const ContextInputForm = ({
         </div>
 
         <div className="space-y-4">
-          <Label htmlFor="weather" className="font-mono text-xs uppercase tracking-widest text-black/40">Weather</Label>
+          <Label htmlFor="weather" className="font-mono text-xs uppercase tracking-widest text-foreground/40">Weather</Label>
           <Input
             id="weather"
             placeholder="e.g., Humid"
@@ -55,7 +55,7 @@ export const ContextInputForm = ({
         </div>
 
         <div className="space-y-4">
-          <Label htmlFor="mood" className="font-mono text-xs uppercase tracking-widest text-black/40">Mood / Style</Label>
+          <Label htmlFor="mood" className="font-mono text-xs uppercase tracking-widest text-foreground/40">Mood / Style</Label>
           <Input
             id="mood"
             placeholder="e.g., Professional"

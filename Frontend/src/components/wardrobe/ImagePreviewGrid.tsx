@@ -25,14 +25,14 @@ export const ImagePreviewGrid = ({
       {images.map((image) => (
         <div
           key={image.id}
-          className="group relative aspect-square rounded-lg overflow-hidden border border-black/20 bg-muted"
+          className="group relative aspect-square rounded-lg overflow-hidden border border-foreground/20 bg-muted"
         >
           <img
             src={image.preview}
             alt={image.metadata?.name || "Preview"}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
+          <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/40 transition-colors" />
           <Button
             variant="destructive"
             size="icon"
@@ -53,7 +53,7 @@ export const ImagePreviewGrid = ({
           )}
           {image.metadata?.name && (
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-              <p className="text-xs text-black font-medium truncate">
+              <p className="text-xs text-foreground font-medium truncate">
                 {image.metadata.name}
               </p>
             </div>

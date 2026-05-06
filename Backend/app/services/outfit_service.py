@@ -1,18 +1,15 @@
 """
-Outfit generation service.
-
-Given a list of candidate WardrobeItem records, assembles 1-3 outfit
-combinations using rule-based matching, then persists them to DB.
+MongoDB-based outfit service — replaces SQLAlchemy outfit_service.py.
+All functions are async and work with Motor AsyncIOMotorDatabase.
 """
-import json
 import logging
 import random
+import time
 from typing import Dict, List, Optional, Tuple
 
-from sqlalchemy.orm import Session
+from bson import ObjectId
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.models.outfit import OutfitItem, OutfitRecommendation
-from app.models.wardrobe_item import WardrobeItem
 from app.services.feedback_service import get_preference_scores
 from app.services.retrieval_service import retrieve_candidates
 from app.utils.color_utils import get_outfit_color_score
@@ -21,21 +18,19 @@ from app.utils.rules import build_explanation, get_blueprint, get_role, items_sa
 logger = logging.getLogger(__name__)
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
-
-def generate_guided_outfit(
-    db: Session,
+async def generate_guided_outfit(
+    db: AsyncIOMotorDatabase,
     faiss_dir: str,
-    user_id: int,
+    user_id: str,
     occasion: Optional[str],
     mood: Optional[str],
     color_preference: Optional[str],
-    item_id: Optional[int],
+    item_id: Optional[str],
     query_text: Optional[str],
     style_vector: Optional[List[float]],
 ) -> List[dict]:
-    preference_scores = get_preference_scores(db, user_id)
-    candidates = retrieve_candidates(
+    preference_scores = await get_preference_scores(db, user_id)
+    candidates = await retrieve_candidates(
         db=db,
         faiss_dir=faiss_dir,
         user_id=user_id,
@@ -50,18 +45,18 @@ def generate_guided_outfit(
     )
 
     combos = _build_combinations(candidates, occasion, max_combos=3)
-    return _persist_and_format(db, user_id, "guided", occasion, mood, color_preference, query_text, combos)
+    return await _persist_and_format(db, user_id, "guided", occasion, mood, color_preference, query_text, combos)
 
 
-def generate_surprise_outfit(
-    db: Session,
+async def generate_surprise_outfit(
+    db: AsyncIOMotorDatabase,
     faiss_dir: str,
-    user_id: int,
+    user_id: str,
     count: int,
     style_vector: Optional[List[float]],
 ) -> List[dict]:
-    preference_scores = get_preference_scores(db, user_id)
-    candidates = retrieve_candidates(
+    preference_scores = await get_preference_scores(db, user_id)
+    candidates = await retrieve_candidates(
         db=db,
         faiss_dir=faiss_dir,
         user_id=user_id,
@@ -71,55 +66,44 @@ def generate_surprise_outfit(
     )
     random.shuffle(candidates)
     combos = _build_combinations(candidates, occasion=None, max_combos=count)
-    return _persist_and_format(db, user_id, "surprise", None, None, None, None, combos)
+    return await _persist_and_format(db, user_id, "surprise", None, None, None, None, combos)
 
 
-def get_outfit_history(db: Session, user_id: int, skip: int = 0, limit: int = 20) -> List[dict]:
-    outfits = (
-        db.query(OutfitRecommendation)
-        .filter(OutfitRecommendation.user_id == user_id)
-        .order_by(OutfitRecommendation.created_at.desc())
-        .offset(skip)
+async def get_outfit_history(
+    db: AsyncIOMotorDatabase,
+    user_id: str,
+    skip: int = 0,
+    limit: int = 20,
+) -> Tuple[List[dict], int]:
+    cursor = (
+        db["outfit_recommendations"]
+        .find({"user_id": user_id})
+        .sort("created_at", -1)
+        .skip(skip)
         .limit(limit)
-        .all()
     )
-    total = db.query(OutfitRecommendation).filter(OutfitRecommendation.user_id == user_id).count()
+    outfits = await cursor.to_list(length=limit)
+    total = await db["outfit_recommendations"].count_documents({"user_id": user_id})
 
     result = []
-    for outfit in outfits:
-        outfit_items = db.query(OutfitItem).filter(OutfitItem.outfit_id == outfit.id).all()
-        item_details = []
-        for oi in outfit_items:
-            wi = db.query(WardrobeItem).filter(WardrobeItem.id == oi.wardrobe_item_id).first()
-            if wi:
-                item_details.append({"role": oi.role, "item": _serialize_wardrobe(wi)})
+    for o in outfits:
         result.append({
-            "id": outfit.id,
-            "mode": outfit.mode,
-            "occasion": outfit.occasion,
-            "mood": outfit.mood,
-            "explanation": outfit.explanation,
-            "created_at": outfit.created_at,
-            "items": item_details,
+            "id": str(o["_id"]),
+            "mode": o.get("mode"),
+            "occasion": o.get("occasion"),
+            "mood": o.get("mood"),
+            "explanation": o.get("explanation"),
+            "created_at": o.get("created_at"),
+            "items": o.get("items", []),
         })
     return result, total
 
 
-# ── Internal helpers ──────────────────────────────────────────────────────────
-
-def _build_combinations(
-    candidates: List[WardrobeItem],
-    occasion: Optional[str],
-    max_combos: int,
-) -> List[Dict]:
-    """
-    Group candidates by role and assemble the best-scoring outfit combos.
-    Returns a list of {role → WardrobeItem} dicts.
-    """
-    # Bucket items by role
-    role_buckets: Dict[str, List[WardrobeItem]] = {}
+def _build_combinations(candidates: List[Dict], occasion: Optional[str], max_combos: int) -> List[Dict]:
+    """Group candidates by role and assemble the best-scoring outfit combos."""
+    role_buckets: Dict[str, List[Dict]] = {}
     for item in candidates:
-        role = get_role(item.category)
+        role = get_role(item.get("category"))
         role_buckets.setdefault(role, []).append(item)
 
     blueprint = get_blueprint(occasion)
@@ -128,14 +112,13 @@ def _build_combinations(
     combos = []
     used_ids: set = set()
 
-    for _ in range(max_combos * 5):  # try multiple times to find valid combos
+    for _ in range(max_combos * 5):
         if len(combos) >= max_combos:
             break
 
-        selected: Dict[str, WardrobeItem] = {}
+        selected: Dict[str, Dict] = {}
         for role in all_roles:
-            available = [i for i in role_buckets.get(role, []) if i.id not in used_ids]
-            # For dress, skip top+bottom if we have one
+            available = [i for i in role_buckets.get(role, []) if i["id"] not in used_ids]
             if role in ("top", "bottom") and selected.get("dress"):
                 continue
             if available:
@@ -145,26 +128,20 @@ def _build_combinations(
         if not items_satisfy_blueprint(role_map, occasion):
             continue
 
-        # Score by color compatibility
-        colors_list = [
-            json.loads(item.dominant_colors_json or "[]")
-            for item in selected.values()
-        ]
+        colors_list = [item.get("dominant_colors", []) for item in selected.values()]
         score = get_outfit_color_score(colors_list)
 
         combos.append({"items": selected, "score": score})
-        # Prevent exact same top from appearing in next combo
         for item in selected.values():
-            used_ids.add(item.id)
+            used_ids.add(item["id"])
 
-    # Sort by score descending
     combos.sort(key=lambda x: x["score"], reverse=True)
     return combos[:max_combos]
 
 
-def _persist_and_format(
-    db: Session,
-    user_id: int,
+async def _persist_and_format(
+    db: AsyncIOMotorDatabase,
+    user_id: str,
     mode: str,
     occasion: Optional[str],
     mood: Optional[str],
@@ -176,60 +153,46 @@ def _persist_and_format(
     for combo in combos:
         selected = combo["items"]
         explanation = build_explanation(
-            {role: _serialize_wardrobe(item) for role, item in selected.items()},
+            {role: item for role, item in selected.items()},
             occasion,
             mood,
         )
 
-        # Persist outfit record
-        outfit_rec = OutfitRecommendation(
-            user_id=user_id,
-            mode=mode,
-            occasion=occasion,
-            mood=mood,
-            color_preference=color_preference,
-            query_text=query_text,
-            explanation=explanation,
-        )
-        db.add(outfit_rec)
-        db.flush()  # get outfit_rec.id
+        # Embed items array directly in the outfit document
+        items_array = [
+            {
+                "role": role,
+                "wardrobe_item_id": item["id"],
+                "image_path": item.get("image_path"),
+                "thumbnail_path": item.get("thumbnail_path"),
+                "category": item.get("category"),
+                "subcategory": item.get("subcategory"),
+                "dominant_colors": item.get("dominant_colors", []),
+            }
+            for role, item in selected.items()
+        ]
 
-        item_details = []
-        for role, wardrobe_item in selected.items():
-            oi = OutfitItem(
-                outfit_id=outfit_rec.id,
-                wardrobe_item_id=wardrobe_item.id,
-                role=role,
-            )
-            db.add(oi)
-            item_details.append({"role": role, "item": _serialize_wardrobe(wardrobe_item)})
+        outfit_doc = {
+            "user_id": user_id,
+            "mode": mode,
+            "occasion": occasion,
+            "mood": mood,
+            "color_preference": color_preference,
+            "query_text": query_text,
+            "explanation": explanation,
+            "items": items_array,
+            "is_saved": False,
+            "created_at": time.time(),
+        }
+        insert_result = await db["outfit_recommendations"].insert_one(outfit_doc)
+        outfit_id = str(insert_result.inserted_id)
 
-        db.commit()
         result.append({
-            "outfit_id": outfit_rec.id,
-            "items": item_details,
+            "outfit_id": outfit_id,
+            "items": [{"role": i["role"], "item": i} for i in items_array],
             "explanation": explanation,
             "occasion": occasion,
             "mood": mood,
         })
 
     return result
-
-
-def _serialize_wardrobe(item: WardrobeItem) -> dict:
-    return {
-        "id": item.id,
-        "user_id": item.user_id,
-        "image_path": item.image_path,
-        "thumbnail_path": item.thumbnail_path,
-        "category": item.category,
-        "subcategory": item.subcategory,
-        "dominant_colors": json.loads(item.dominant_colors_json or "[]"),
-        "pattern_tags": json.loads(item.pattern_tags_json or "[]"),
-        "occasion_tags": json.loads(item.occasion_tags_json or "[]"),
-        "season_tags": json.loads(item.season_tags_json or "[]"),
-        "embedding_id": item.embedding_id,
-        "notes": item.notes,
-        "created_at": item.created_at,
-        "updated_at": item.updated_at,
-    }

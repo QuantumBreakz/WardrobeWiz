@@ -60,7 +60,7 @@ export const UploadProgress = ({
       {status === "uploading" && (
         <CardContent>
           <Progress value={progress} className="w-full" />
-          <p className="text-sm text-black/50 mt-2">{progress}%</p>
+          <p className="text-sm text-foreground/50 mt-2">{progress}%</p>
         </CardContent>
       )}
     </Card>

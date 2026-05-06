@@ -61,7 +61,7 @@ const Research = () => {
         <div className="grid gap-12 lg:grid-cols-2 pt-12 border-t border-white/20">
           <div className="space-y-8">
             <h2 className="text-3xl font-medium text-white">Target Telemetry Metrics</h2>
-            <div className="border border-white/20 p-8 space-y-6 bg-black/20 backdrop-blur-md">
+            <div className="border border-white/20 p-8 space-y-6 bg-foreground/20 backdrop-blur-md">
               {metrics.map((row) => (
                 <div key={row.metric} className="flex flex-col border-b border-white/10 pb-6 last:border-0 last:pb-0">
                   <div className="flex justify-between items-baseline mb-2">
@@ -76,7 +76,7 @@ const Research = () => {
 
           <div className="space-y-8">
             <h2 className="text-3xl font-medium text-white">Dataset & Pre-training</h2>
-            <div className="border border-white/20 p-8 space-y-8 bg-black/20 backdrop-blur-md">
+            <div className="border border-white/20 p-8 space-y-8 bg-foreground/20 backdrop-blur-md">
               <div className="space-y-2">
                 <p className="font-mono text-xs uppercase tracking-widest text-white/50">Base Model (Perception)</p>
                 <p className="text-white text-lg">DeepFashion2 + Custom Spatial Corpus</p>

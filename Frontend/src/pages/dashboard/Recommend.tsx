@@ -43,8 +43,8 @@ const Recommend = () => {
 
   return (
     <div className="space-y-8">
-      <div className="pb-8 border-b border-black/10">
-        <p className="font-mono text-xs uppercase tracking-[0.4em] mb-4 text-black/40">AI Engine</p>
+      <div className="pb-8 border-b border-foreground/10">
+        <p className="font-mono text-xs uppercase tracking-[0.4em] mb-4 text-foreground/40">AI Engine</p>
         <h1 className="text-5xl font-medium tracking-tight">Synthesize.</h1>
       </div>
 
@@ -58,7 +58,7 @@ const Recommend = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-2 text-sm text-black/50">
+          <ul className="space-y-2 text-sm text-foreground/50">
             <li>• Your wardrobe items and their usage history</li>
             <li>• Weather conditions and temperature</li>
             <li>• Event type and dress code requirements</li>
@@ -68,7 +68,7 @@ const Recommend = () => {
         </CardContent>
       </Card>
 
-      <div className="flex justify-start border-t border-black/10 pt-8 mt-8">
+      <div className="flex justify-start border-t border-foreground/10 pt-8 mt-8">
         <Button
           onClick={handleGenerate}
           disabled={isGenerating}

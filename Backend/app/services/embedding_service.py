@@ -97,3 +97,23 @@ def get_text_embedding(text: str) -> Optional[List[float]]:
     except Exception as e:
         logger.error(f"Text embedding failed for '{text}': {e}")
         return None
+
+
+def get_pipeline_status() -> dict:
+    """Return current ML pipeline status."""
+    return {
+        "loaded": _model is not None,
+        "device": _device,
+        "model_name": "ViT-B-32" if HAS_TORCH else "fallback-random",
+        "has_torch": HAS_TORCH,
+    }
+
+
+def reload_model() -> dict:
+    """Hot-swap: clear the current model singleton and reload it."""
+    global _model, _preprocess, _tokenizer
+    _model = None
+    _preprocess = None
+    _tokenizer = None
+    _load_model()
+    return get_pipeline_status()

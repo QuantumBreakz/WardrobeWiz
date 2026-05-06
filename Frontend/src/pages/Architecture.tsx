@@ -91,7 +91,7 @@ const Architecture = () => {
 
         <div className="pt-24">
           <h2 className="text-4xl font-medium text-white mb-8">Data Flow Topography</h2>
-          <div className="border border-white/20 p-8 sm:p-12 space-y-8 bg-black/20 backdrop-blur-md">
+          <div className="border border-white/20 p-8 sm:p-12 space-y-8 bg-foreground/20 backdrop-blur-md">
             {[
               "1. Client ingress: Image + telemetry pushed to ingestion queue.",
               "2. Perception nodes execute background removal and generate 768-dimensional CLIP embeddings.",

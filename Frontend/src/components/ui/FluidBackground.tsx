@@ -32,7 +32,7 @@ function getPresetIndex(pathname: string): number {
   if (pathname.includes("/recommend")) return 4;
   if (pathname.includes("/outfits")) return 5;
   if (pathname.includes("/analytics")) return 6;
-  if (pathname.includes("/dashboard")) return 2;
+  if (pathname.includes("/dashboard") || pathname.includes("/admin")) return 2;
   return 0; // Landing/default
 }
 
@@ -139,48 +139,43 @@ export const FluidBackground = () => {
   const location = useLocation();
   const uniformsRef = useRef<any>(null);
   
-  // Clone the preset objects to avoid mutating shared state
-  const currentPresetRef = useRef<any>({ ...presets[0] });
-  const targetPresetRef = useRef<any>({ ...presets[0] });
+  // These hold the raw values for lerping
+  const currentValuesRef = useRef<any>({ ...presets[0] });
+  const targetValuesRef = useRef<any>({ ...presets[0] });
 
   // Handle route changes
   useEffect(() => {
     const idx = getPresetIndex(location.pathname);
     const target = presets[idx];
-    targetPresetRef.current = { ...target };
     
-    if (uniformsRef.current) {
-      const u = uniformsRef.current;
-      u.u_zoom.value = target.zoom;
-      u.spinRotation.value = target.spinRotation;
-      u.spinSpeed.value = target.spinSpeed;
-      u.colour1.value.copy(hexToVec4(target.colour1));
-      u.colour2.value.copy(hexToVec4(target.colour2));
-      u.colour3.value.copy(hexToVec4(target.colour3));
-      u.contrast.value = target.contrast;
-      u.lighting.value = target.lighting;
-      u.spinAmount.value = target.spinAmount;
-      u.pixelFilter.value = target.pixelFilter;
-      u.grainStrength.value = target.grainStrength;
-      u.useGrain.value = target.useGrain ? 1.0 : 0.0;
-      u.effectDepth.value = Math.floor(target.effectDepth);
+    // Pre-calculate target vectors to avoid parsing in the animation loop
+    targetValuesRef.current = { 
+      ...target,
+      c1: hexToVec4(target.colour1),
+      c2: hexToVec4(target.colour2),
+      c3: hexToVec4(target.colour3),
+    };
+    
+    // Toggle dark mode on the root element based on the preset
+    if (idx === 0 || idx === 3 || idx === 1) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
     }
   }, [location.pathname]);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // ── Setup ──────────────────────────────────────────
     const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
-    renderer.setPixelRatio(1.0); // Reset to 1.0 for sharp graphics
+    renderer.setPixelRatio(1.0);
     renderer.setSize(window.innerWidth, window.innerHeight);
     containerRef.current.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
-    const p = currentPresetRef.current;
-    
+    const p = targetValuesRef.current;
     const uniforms = {
       iTime:        { value: 0.0 },
       iResolution:  { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
@@ -213,40 +208,65 @@ export const FluidBackground = () => {
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
-    // ── Resize ────────────────────────────────────────────
     const handleResize = () => {
       renderer.setSize(window.innerWidth, window.innerHeight);
-      if (uniformsRef.current) {
-        uniformsRef.current.iResolution.value.set(window.innerWidth, window.innerHeight);
-      }
+      uniforms.iResolution.value.set(window.innerWidth, window.innerHeight);
     };
     window.addEventListener("resize", handleResize, { passive: true });
 
-
-
-    // ── Animate ───────────────────────────────────────────
     const clock = new THREE.Clock();
     let animationFrameId: number;
 
     const lerp = (start: number, end: number, t: number) => start * (1 - t) + end * t;
+    const lerpColor = (start: THREE.Vector4, end: THREE.Vector4, t: number) => {
+        start.x = lerp(start.x, end.x, t);
+        start.y = lerp(start.y, end.y, t);
+        start.z = lerp(start.z, end.z, t);
+        start.w = lerp(start.w, end.w, t);
+    };
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
-      
+      if (document.hidden) return;
+
       const time = clock.getElapsedTime();
-      
-      if (document.hidden) return; // Save battery/GPU when tab is inactive
-      
-      // Update basic uniforms
       uniforms.iTime.value = time;
-      uniforms.u_offset.value.set(0, 0);
+
+      // Smoothly transition between presets
+      const t = 0.05; // Lerp factor
+      const target = targetValuesRef.current;
+      const current = currentValuesRef.current;
+
+      current.zoom = lerp(current.zoom, target.zoom, t);
+      current.spinRotation = lerp(current.spinRotation, target.spinRotation, t);
+      current.spinSpeed = lerp(current.spinSpeed, target.spinSpeed, t);
+      current.contrast = lerp(current.contrast, target.contrast, t);
+      current.lighting = lerp(current.lighting, target.lighting, t);
+      current.spinAmount = lerp(current.spinAmount, target.spinAmount, t);
+      current.pixelFilter = lerp(current.pixelFilter, target.pixelFilter, t);
+      current.grainStrength = lerp(current.grainStrength, target.grainStrength, t);
+      
+      // Update uniforms
+      uniforms.u_zoom.value = current.zoom;
+      uniforms.spinRotation.value = current.spinRotation;
+      uniforms.spinSpeed.value = current.spinSpeed;
+      uniforms.contrast.value = current.contrast;
+      uniforms.lighting.value = current.lighting;
+      uniforms.spinAmount.value = current.spinAmount;
+      uniforms.pixelFilter.value = current.pixelFilter;
+      uniforms.grainStrength.value = current.grainStrength;
+      uniforms.useGrain.value = target.useGrain ? 1.0 : 0.0;
+      uniforms.effectDepth.value = target.effectDepth;
+
+      lerpColor(uniforms.colour1.value, target.c1, t);
+      lerpColor(uniforms.colour2.value, target.c2, t);
+      lerpColor(uniforms.colour3.value, target.c3, t);
 
       renderer.render(scene, camera);
     };
     
     animate();
 
-    // ── Cleanup ───────────────────────────────────────────
     return () => {
       window.removeEventListener("resize", handleResize);
       cancelAnimationFrame(animationFrameId);
