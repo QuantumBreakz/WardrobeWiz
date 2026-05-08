@@ -1,6 +1,6 @@
 # WardrobeWhiz
 
-An AI-powered personal wardrobe assistant that helps users generate outfit recommendations from their own clothing items using CLIP embeddings, FAISS vector search, and rule-based styling logic — with a full React frontend.
+An AI-powered personal wardrobe assistant that helps users generate outfit recommendations from their own clothing items using CLIP embeddings, FAISS vector search, and rule-based styling logic — with a full React frontend, Clip Embeddings and models to be made better in future iterations.
 
 ---
 
